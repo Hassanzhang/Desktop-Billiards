@@ -97,3 +97,4 @@
   - 满力击球单帧 `step`：1000 图标 9.0→3.3 ms；2000 图标 23.5→4.9 ms（旧值超过 16.7 ms 帧预算，即击球瞬间掉帧的实测根因）。
 - 未覆盖：渲染器 sprite／球层缓存仅静态检查与模拟 IPC 验证，未在真实桌面窗口做原生视觉回归；命中悬停文件名的像素级外观未复验；未测真实 Finder 桌面帧率；Windows 与多显示器 DPI 行为沿用既有未验收项。
 - 本轮改动在并行工作流提交 `perf(T-012)` 之后单独提交，不混入他人改动；未发布。
+- 追加交付：`npm run build -- --bundles dmg` 生成 `Desktop Icon Billiards_0.1.1_aarch64.dmg`（约 4.5 MiB，`hdiutil verify` 校验通过），已复制至 `dist/`；`.app` 从同一 DMG 提取，与包内二进制一致，启动冒烟通过。dmg 打包脚本会清理 `target` 内的 macos bundle，交付 `.app` 需从 DMG 提取或重新 `--bundles app`。
