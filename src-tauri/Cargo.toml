@@ -38,7 +38,10 @@ incremental = false
 debug = 0
 incremental = false
 
+# Smaller and faster release binaries; local builds keep incremental state off above.
 [profile.release]
 debug = 0
+lto = "thin"
+codegen-units = 1
 strip = "symbols"
 incremental = false

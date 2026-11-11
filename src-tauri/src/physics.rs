@@ -1,11 +1,12 @@
 use serde::Serialize;
+use std::collections::HashMap;
 
 const DRAG: f64 = 0.45;
 const REBOUND: f64 = 0.88;
 const IMPULSE: f64 = 0.96;
 const STROKE_SECONDS: f64 = 0.12;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone)]
 pub struct Ball {
     pub x: f64,
     pub y: f64,
@@ -36,13 +37,30 @@ pub enum Phase {
     BallInHand,
     Finished,
 }
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Guide {
     pub role: &'static str,
     pub start: [f64; 2],
     pub end: [f64; 2],
 }
 #[derive(Serialize)]
+pub struct Snapshot {
+    pub phase: Phase,
+    pub pulling: bool,
+    pub charge: f32,
+    pub stroke_progress: f32,
+    pub cue_follow: f32,
+    pub stroke_origin: [f32; 2],
+    pub aim: [f32; 2],
+    pub seconds: u64,
+    pub pocketed: usize,
+    pub ghost: Option<[f32; 2]>,
+    pub guide: Vec<Guide>,
+    /// Flat per-ball positions so the IPC payload stays small on icon-heavy desktops.
+    pub xs: Vec<f32>,
+    pub ys: Vec<f32>,
+    pub sunk: Vec<bool>,
+}
 pub struct Table {
     pub bounds: [f64; 4],
     pub pockets: [[f64; 2]; 6],
@@ -61,13 +79,9 @@ pub struct Table {
     pub charge: f64,
     pub seconds: u64,
     pub guide: Vec<Guide>,
-    #[serde(skip)]
     elapsed: f64,
-    #[serde(skip)]
     wait: f64,
-    #[serde(skip)]
     power: f64,
-    #[serde(skip)]
     pull_origin: Option<[f64; 2]>,
 }
 impl Table {
@@ -144,6 +158,25 @@ impl Table {
     }
     fn height(&self) -> f64 {
         self.bounds[3] - self.bounds[1]
+    }
+    /// Compact per-frame state: one serialization pass, flat f32 ball arrays.
+    pub fn snapshot(&self) -> Snapshot {
+        Snapshot {
+            phase: self.phase,
+            pulling: self.pulling,
+            charge: self.charge as f32,
+            stroke_progress: self.stroke_progress as f32,
+            cue_follow: self.cue_follow as f32,
+            stroke_origin: [self.stroke_origin[0] as f32, self.stroke_origin[1] as f32],
+            aim: [self.aim[0] as f32, self.aim[1] as f32],
+            seconds: self.seconds,
+            pocketed: self.balls.iter().skip(1).filter(|b| b.sunk).count(),
+            ghost: self.ghost.map(|g| [g[0] as f32, g[1] as f32]),
+            guide: self.guide.clone(),
+            xs: self.balls.iter().map(|b| b.x as f32).collect(),
+            ys: self.balls.iter().map(|b| b.y as f32).collect(),
+            sunk: self.balls.iter().map(|b| b.sunk).collect(),
+        }
     }
     fn speed(&self, power: f64) -> f64 {
         self.height() * 4.5 * power.clamp(0., 1.)
@@ -289,6 +322,11 @@ impl Table {
             .ceil()
             .max(1.) as usize;
         let h = dt / steps as f64;
+        // Neighbor buckets turn the pairwise check from O(n²) into near-O(n);
+        // a ball within contact distance can never cross more than one cell edge.
+        let cell = (self.balls[0].radius * 2.).max(1.);
+        let cell_of = |v: f64| (v / cell).floor() as i32;
+        let mut grid: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
         for _ in 0..steps {
             for ball in &mut self.balls {
                 if ball.sunk {
@@ -304,15 +342,32 @@ impl Table {
                     rails(ball, &self.cushions);
                 }
             }
-            // ponytail: pairwise collision checks suit desktop-sized racks; use spatial buckets if profiling warrants it.
+            grid.clear();
+            for (i, ball) in self.balls.iter().enumerate() {
+                if !ball.sunk {
+                    grid.entry((cell_of(ball.x), cell_of(ball.y)))
+                        .or_default()
+                        .push(i);
+                }
+            }
             for i in 0..self.balls.len() {
-                let (left, right) = self.balls.split_at_mut(i + 1);
-                let a = &mut left[i];
-                if a.sunk {
+                if self.balls[i].sunk {
                     continue;
                 }
-                for b in right.iter_mut().filter(|b| !b.sunk) {
-                    collide(a, b);
+                let (cx, cy) = (cell_of(self.balls[i].x), cell_of(self.balls[i].y));
+                for dx in -1..=1 {
+                    for dy in -1..=1 {
+                        let Some(neighbors) = grid.get(&(cx + dx, cy + dy)) else {
+                            continue;
+                        };
+                        for &j in neighbors {
+                            if j <= i {
+                                continue;
+                            }
+                            let (left, right) = self.balls.split_at_mut(j);
+                            collide(&mut left[i], &mut right[0]);
+                        }
+                    }
                 }
             }
             for ball in self.balls.iter_mut().filter(|b| !b.sunk) {

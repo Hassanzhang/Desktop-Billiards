@@ -151,9 +151,21 @@ fn open_game(
 fn initial(state: State<Runtime>) -> Result<serde_json::Value, String> {
     let guard = state.game.lock().map_err(|e| e.to_string())?;
     let game = guard.as_ref().ok_or("游戏尚未开始")?;
-    Ok(
-        serde_json::json!({"items":game.items,"width":game.width,"height":game.height,"guide":state.guide.load(Ordering::Relaxed),"wallpaper":desktop::wallpaper()}),
-    )
+    let table = &game.table;
+    // Static geometry travels once here so every frame only carries moving state.
+    Ok(serde_json::json!({
+        "items": game.items,
+        "width": game.width,
+        "height": game.height,
+        "guide": state.guide.load(Ordering::Relaxed),
+        "wallpaper": desktop::wallpaper(),
+        "bounds": table.bounds,
+        "pockets": table.pockets,
+        "pocket_radius": table.pocket_radius,
+        "rail_depth": table.rail_depth,
+        "max_pull": table.max_pull,
+        "radius": table.balls[0].radius,
+    }))
 }
 #[derive(serde::Deserialize)]
 struct Pointer {
@@ -172,7 +184,7 @@ fn frame(
     window: tauri::WebviewWindow,
     state: State<Runtime>,
     pointer: Pointer,
-) -> Result<serde_json::Value, String> {
+) -> Result<physics::Snapshot, String> {
     if window.label() != "table" {
         return Err("只有台面可以推进游戏".into());
     }
@@ -233,8 +245,13 @@ fn frame(
     if game.table.phase != Phase::Finished {
         game.table.seconds = game.started.elapsed().as_secs();
     }
-    game.table.update_guide();
-    serde_json::to_value(&game.table).map_err(|e| e.to_string())
+    if state.guide.load(Ordering::Relaxed) {
+        game.table.update_guide();
+    } else {
+        game.table.guide.clear();
+        game.table.ghost = None;
+    }
+    Ok(game.table.snapshot())
 }
 #[tauri::command]
 fn status(state: State<Runtime>) -> Result<Option<Summary>, String> {

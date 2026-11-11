@@ -86,3 +86,14 @@
 - `npm run check`、Cargo 格式检查、前端 JS 语法检查、`git diff --check` 通过；`npm run build -- --bundles app` 最新 macOS ARM64 `.app` 构建通过，约 9.51 MiB。
 - 原生 UI：最新控制面板 AX 只有“开始桌面游戏”和“退出”，没有试玩入口。点击开始后短时显示读取反馈，后续确认真实桌面台面、51 图标及 3/51 入袋状态。CUA 首次连接报 `Computer Use server error -10005: timeoutReached`，按完整路径重连后验证成功。工具的重连、取状态等待时间不计作启动性能测量；未记录精确端到端启动耗时。
 - macOS 图标读取与真实入口已验证；首次未授权、拒绝授权及 Windows Explorer 启动性能仍待目标环境复验。没有增加缓存失效策略或后台预读授权行为。
+
+## 帧率与手感优化 · 2026-11-11 · 未发布
+
+用户反馈诉求：游玩卡顿、击球手感、项目体积与运行速度。改动：`frame` 返回 `physics::Snapshot`（扁平 f32 球数组 + `pocketed`），静态几何（bounds/pockets/pocket_radius/rail_depth/max_pull/球半径）随 `initial` 一次性下发，消除 `serde_json::to_value` 的双重序列化；碰撞由 O(n²) 成对检查改为空间哈希邻居桶；关闭辅助线时跳过 `update_guide`；渲染器将每球阴影／图标／光泽预烘焙为 sprite，并以整层缓存只在球移动时重绘；release profile 增加 `lto="thin"`、`codegen-units=1`。
+
+- `npm test`：8 项 Rust 测试与 3 个 Node 回归（桌面加载、输入手势、袋口锚点）全部通过；`npm run check`（Clippy `-D warnings`）与 `cargo fmt --check` 通过。
+- 同机对照实测（Apple Silicon、release 构建、1600×1000 模拟台面；临时基准 crate 直接引用改动前后真实 `physics.rs`，旧版取自 Git 基线，各场景中位数）：
+  - 瞄准帧（update_guide + 序列化）：300 图标 0.066→0.020 ms，JSON 32503→8056 字节；2000 图标 0.489→0.155 ms，210326→51079 字节（约 4 倍减小；旧 `frame` 的 `to_value` 双重序列化未计入旧值，实际旧开销更高）。
+  - 满力击球单帧 `step`：1000 图标 9.0→3.3 ms；2000 图标 23.5→4.9 ms（旧值超过 16.7 ms 帧预算，即击球瞬间掉帧的实测根因）。
+- 未覆盖：渲染器 sprite／球层缓存仅静态检查与模拟 IPC 验证，未在真实桌面窗口做原生视觉回归；命中悬停文件名的像素级外观未复验；未测真实 Finder 桌面帧率；Windows 与多显示器 DPI 行为沿用既有未验收项。
+- 本轮改动在并行工作流提交 `perf(T-012)` 之后单独提交，不混入他人改动；未发布。

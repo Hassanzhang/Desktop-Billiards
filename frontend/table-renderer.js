@@ -4,34 +4,36 @@ const ballColors = ['#eee9da', '#e7b42a', '#2166ae', '#b52e32', '#6b408b', '#df7
 
 export function createRenderer(canvas, initial, images, background, frameAsset) {
   const ctx = canvas.getContext('2d');
+  const { width, height, radius } = initial;
+  const geom = { bounds: initial.bounds, pocket_radius: initial.pocket_radius, rail_depth: initial.rail_depth };
   let surface;
-  const circle = (x, y, radius, fill) => {
-    ctx.beginPath(); ctx.arc(x, y, radius, 0, TAU); ctx.fillStyle = fill; ctx.fill();
+  let baked = null;
+  let layer = null;
+  let layerCtx = null;
+  let prev = null;
+  const circleOn = (g, x, y, r, fill) => {
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = fill; g.fill();
   };
   const path = points => {
     ctx.beginPath(); ctx.moveTo(...points[0]);
     for (const point of points.slice(1)) ctx.lineTo(...point);
     ctx.closePath();
   };
-  const line = (a, b, color, width = 1.5) => {
+  const line = (a, b, color, lineWidth = 1.5) => {
     ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
-    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.stroke();
   };
   function drawWallpaper() {
-    const { width, height } = initial;
     const ratio = Math.max(width / background.naturalWidth, height / background.naturalHeight);
     const w = background.naturalWidth * ratio, h = background.naturalHeight * ratio;
     ctx.drawImage(background, (width - w) / 2, (height - h) / 2, w, h);
   }
-  function drawSurface(table) {
-    const { width, height } = initial;
+  function drawSurface() {
+    const [l, t, r, b] = geom.bounds;
     ctx.fillStyle = '#202421'; ctx.fillRect(0, 0, width, height);
     if (background) {
       drawWallpaper();
       ctx.fillStyle = '#11191399'; ctx.fillRect(0, 0, width, height);
-    }
-    const [l, t, r, b] = table.bounds;
-    if (background) {
       ctx.save(); ctx.beginPath(); ctx.rect(l - 5, t - 5, r - l + 10, b - t + 10); ctx.clip();
       // Keep the same full-desktop crop inside and outside the table, without blur or felt.
       drawWallpaper();
@@ -51,45 +53,83 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
       }
       ctx.fillStyle = ctx.createPattern(texture, 'repeat'); ctx.fillRect(l, t, r - l, b - t);
     }
-    drawFrameSkin(ctx, frameAsset, table);
+    drawFrameSkin(ctx, frameAsset, geom);
   }
-  function drawBall(ball, index) {
-    const { x, y, radius: radius } = ball;
-    ctx.save(); ctx.shadowColor = '#02130fb3'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 4; ctx.shadowOffsetX = 2;
-    circle(x, y, radius, index === 0 ? '#f4f0df' : ballColors[(index - 1) % 8 + 1]);
-    ctx.shadowColor = 'transparent';
-    ctx.beginPath(); ctx.arc(x, y, radius, 0, TAU); ctx.clip();
+  // Each ball is baked once into a sprite: shadow, icon, shading and gloss are
+  // pre-rendered, so a frame only blits `drawImage` per ball.
+  function drawBallFace(g, index, image, x, y) {
+    g.save();
+    g.shadowColor = '#02130fb3'; g.shadowBlur = 5; g.shadowOffsetY = 4; g.shadowOffsetX = 2;
+    circleOn(g, x, y, radius, index === 0 ? '#f4f0df' : ballColors[(index - 1) % 8 + 1]);
+    g.shadowColor = 'transparent';
+    g.beginPath(); g.arc(x, y, radius, 0, TAU); g.clip();
     if (index > 0) {
-      const image = images[index - 1];
       if (image) {
         const ratio = radius * 2 / Math.max(image.naturalWidth, image.naturalHeight);
-        ctx.drawImage(image, x - image.naturalWidth * ratio / 2, y - image.naturalHeight * ratio / 2, image.naturalWidth * ratio, image.naturalHeight * ratio);
+        g.drawImage(image, x - image.naturalWidth * ratio / 2, y - image.naturalHeight * ratio / 2, image.naturalWidth * ratio, image.naturalHeight * ratio);
       } else {
         if (index > 8) {
-          ctx.fillStyle = '#eee8d8'; ctx.fillRect(x - radius, y - radius, radius * 2, radius * .42);
-          ctx.fillRect(x - radius, y + radius * .58, radius * 2, radius * .42);
+          g.fillStyle = '#eee8d8'; g.fillRect(x - radius, y - radius, radius * 2, radius * .42);
+          g.fillRect(x - radius, y + radius * .58, radius * 2, radius * .42);
         }
-        circle(x, y, radius * .46, '#f5eedc');
-        ctx.fillStyle = '#242b29'; ctx.font = `600 ${Math.max(8, radius * .67)}px system-ui`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(index), x, y + .5);
+        circleOn(g, x, y, radius * .46, '#f5eedc');
+        g.fillStyle = '#242b29'; g.font = `600 ${Math.max(8, radius * .67)}px system-ui`;
+        g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(index), x, y + .5);
       }
     }
-    const shade = ctx.createRadialGradient(x - radius * .32, y - radius * .4, radius * .1, x + radius * .05, y + radius * .1, radius * 1.1);
+    const shade = g.createRadialGradient(x - radius * .32, y - radius * .4, radius * .1, x + radius * .05, y + radius * .1, radius * 1.1);
     shade.addColorStop(0, '#ffffff36'); shade.addColorStop(.5, '#ffffff00'); shade.addColorStop(.82, '#071c1726'); shade.addColorStop(1, '#020e0bbf');
-    circle(x, y, radius, shade);
-    const shine = ctx.createRadialGradient(x - radius * .33, y - radius * .4, 0, x - radius * .33, y - radius * .4, radius * .4);
+    circleOn(g, x, y, radius, shade);
+    const shine = g.createRadialGradient(x - radius * .33, y - radius * .4, 0, x - radius * .33, y - radius * .4, radius * .4);
     shine.addColorStop(0, '#ffffffb3'); shine.addColorStop(.4, '#ffffff33'); shine.addColorStop(1, '#ffffff00');
-    circle(x - radius * .33, y - radius * .4, radius * .4, shine);
-    ctx.restore();
+    circleOn(g, x - radius * .33, y - radius * .4, radius * .4, shine);
+    g.restore();
+  }
+  function bake(scale) {
+    // 12px padding covers the baked drop shadow (blur 5, offsets 2/4).
+    const size = Math.ceil((radius + 12) * 2);
+    const sprites = [];
+    for (let i = 0; i <= images.length; i++) {
+      const sprite = document.createElement('canvas');
+      sprite.width = sprite.height = Math.ceil(size * scale);
+      const g = sprite.getContext('2d');
+      g.scale(scale, scale);
+      drawBallFace(g, i, images[i - 1], size / 2, size / 2);
+      sprites.push({ sprite, size });
+    }
+    return sprites;
+  }
+  // All balls live on one cached layer, redrawn only when a ball actually moved
+  // or sank: while aiming, a frame costs two blits plus cue and guide lines.
+  function drawBalls(table, scale) {
+    const { xs, ys, sunk } = table;
+    if (!layer) {
+      layer = document.createElement('canvas');
+      layer.width = canvas.width; layer.height = canvas.height;
+      layerCtx = layer.getContext('2d');
+      prev = null;
+    }
+    if (!prev || prev.xs.length !== xs.length
+      || sunk.some((s, i) => s !== prev.sunk[i] || xs[i] !== prev.xs[i] || ys[i] !== prev.ys[i])) {
+      layerCtx.setTransform(scale, 0, 0, scale, 0, 0);
+      layerCtx.clearRect(0, 0, width, height);
+      for (let i = 0; i < xs.length; i++) {
+        if (sunk[i]) continue;
+        const { sprite, size } = baked.sprites[i];
+        layerCtx.drawImage(sprite, xs[i] - size / 2, ys[i] - size / 2, size, size);
+      }
+      prev = { xs, ys, sunk };
+    }
+    ctx.drawImage(layer, 0, 0, width, height);
   }
   function drawCue(table) {
-    if ((!['ready', 'stroke'].includes(table.phase) && !table.cue_follow) || table.balls[0].sunk) return;
-    const white = table.balls[0];
-    let gap = 10 + table.charge * table.max_pull;
+    if ((!['ready', 'stroke'].includes(table.phase) && !table.cue_follow) || table.sunk[0]) return;
+    const white = { x: table.xs[0], y: table.ys[0] };
+    let gap = 10 + table.charge * initial.max_pull;
     if (table.phase === 'stroke') gap *= 1 - table.stroke_progress ** 1.6;
     if (table.cue_follow > 0) gap = -12 * (1 - table.cue_follow);
     const origin = table.phase === 'ready' ? [white.x, white.y] : table.stroke_origin;
-    const tip = -white.radius - gap;
+    const tip = -radius - gap;
     const length = Math.min(400, initial.height * .48);
     ctx.save(); ctx.translate(...origin); ctx.rotate(Math.atan2(table.aim[1], table.aim[0]));
     ctx.shadowColor = '#00110c80'; ctx.shadowOffsetY = 3; ctx.shadowBlur = 3;
@@ -106,13 +146,13 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
   }
   return table => {
     const scale = window.devicePixelRatio || 1;
-    const { width, height } = initial;
     if (canvas.width !== Math.round(width * scale) || canvas.height !== Math.round(height * scale)) {
-      canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale); surface = null;
+      canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale); surface = null; layer = null;
     }
+    if (!baked || baked.scale !== scale) { baked = { scale, sprites: bake(scale) }; layer = null; }
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     if (!surface) {
-      drawSurface(table);
+      drawSurface();
       surface = document.createElement('canvas'); surface.width = canvas.width; surface.height = canvas.height;
       surface.getContext('2d').drawImage(canvas, 0, 0);
     } else ctx.drawImage(surface, 0, 0, width, height);
@@ -121,12 +161,12 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
       for (const leg of table.guide) line(leg.start, leg.end, { incoming: '#f2edceaa', white: '#b4d9e5aa', target: '#e2c27dbb' }[leg.role]);
       ctx.setLineDash([]);
       if (table.ghost) {
-        circle(...table.ghost, table.balls[0].radius, '#faf5dd14');
-        ctx.beginPath(); ctx.arc(...table.ghost, table.balls[0].radius, 0, TAU);
+        circleOn(ctx, ...table.ghost, radius, '#faf5dd14');
+        ctx.beginPath(); ctx.arc(...table.ghost, radius, 0, TAU);
         ctx.strokeStyle = '#f5efced9'; ctx.lineWidth = 1.5; ctx.stroke();
       }
     }
     drawCue(table);
-    table.balls.forEach((ball, i) => { if (!ball.sunk) drawBall(ball, i); });
+    drawBalls(table, scale);
   };
 }

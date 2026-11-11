@@ -15,13 +15,13 @@ const element = id => {
 const inputs = [];
 const events = {};
 let nextFrame;
-let table = { phase: 'ready', pulling: false, charge: 0, seconds: 0, balls: [{ x: 100, y: 100, radius: 20, sunk: false }, { x: 500, y: 350, radius: 20, sunk: false }] };
+let table = { phase: 'ready', pulling: false, charge: 0, seconds: 0, pocketed: 0, ghost: null, guide: [], aim: [1, 0], stroke_origin: [0, 0], stroke_progress: 0, cue_follow: 0, xs: [100, 500], ys: [100, 350], sunk: [false, false] };
 const context = vm.createContext({
   document: { getElementById: element },
   Image: class { set src(_) { queueMicrotask(() => this.onload()); } },
   window: {
     __TAURI__: { core: { invoke: async (command, args) => {
-      if (command === 'initial') return { width: 1000, height: 700, items: [{ name: 'test', image: '' }], guide: true };
+      if (command === 'initial') return { width: 1000, height: 700, items: [{ name: 'test', image: '' }], guide: true, bounds: [90, 77, 940, 623], pockets: [], pocket_radius: 30, rail_depth: 20, max_pull: 160, radius: 20 };
       if (command === 'frame') { inputs.push(args.pointer); return table; }
     } }, event: { listen() {} } },
     addEventListener: (name, callback) => { events[name] = callback; },

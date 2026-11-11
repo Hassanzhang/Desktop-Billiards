@@ -8,6 +8,8 @@ let lastTable;
 let initial;
 let selectedPower = .35;
 let render;
+let lastScore = '';
+let lastHint = '';
 function cancel() {
   pointer.cancel = true; pointer.press = null; pointer.shot = null;
   pointer.release = pointer.place = false; pointer.turn = 0;
@@ -58,22 +60,30 @@ function updateControls(table) {
   $('power').disabled = table.phase !== 'ready' || table.pulling;
   $('shoot').disabled = table.phase !== 'ready' || table.pulling;
   $('shot-controls').classList.toggle('pulling', table.pulling);
-  const count = table.balls.slice(1).filter(ball => ball.sunk).length;
-  $('table-score').textContent = `${count} / ${initial.items.length} 入袋 · ${String(Math.floor(table.seconds / 60)).padStart(2, '0')}:${String(table.seconds % 60).padStart(2, '0')}`;
-  $('table-hint').textContent = table.phase === 'finished' ? '清台完成 · 在控制面板重新开始'
+  const score = `${table.pocketed} / ${initial.items.length} 入袋 · ${String(Math.floor(table.seconds / 60)).padStart(2, '0')}:${String(table.seconds % 60).padStart(2, '0')}`;
+  if (score !== lastScore) { lastScore = score; $('table-score').textContent = score; }
+  const hint = table.phase === 'finished' ? '清台完成 · 在控制面板重新开始'
     : table.phase === 'ball_in_hand' ? '白球入袋 · 点击台面空处摆球'
     : table.phase === 'return_white' ? '白球入袋 · 正在复位'
     : table.pulling ? '方向已锁定 · 向后拉杆 · 松手击球 · 右键 / 空格取消'
     : !active ? '图标滚动中…'
     : '移动瞄准 · 按住向后拉杆 · 松手击球 · ← → / 滚轮微调';
-  const hover = table.pulling || table.phase !== 'ready' ? -1 : table.balls.findIndex((ball, i) => i > 0 && !ball.sunk && Math.hypot(pointer.x - ball.x, pointer.y - ball.y) < ball.radius);
+  if (hint !== lastHint) { lastHint = hint; $('table-hint').textContent = hint; }
+  let hover = -1;
+  if (!table.pulling && table.phase === 'ready') {
+    for (let i = 1; i < table.xs.length; i++) {
+      if (!table.sunk[i] && Math.hypot(pointer.x - table.xs[i], pointer.y - table.ys[i]) < initial.radius) {
+        hover = i; break;
+      }
+    }
+  }
   const tooltip = $('file-name');
   tooltip.hidden = hover < 0;
   if (hover > 0) {
     tooltip.textContent = initial.items[hover - 1].name;
-    const ball = table.balls[hover];
-    tooltip.style.left = `${Math.max(12, Math.min(initial.width - 232, ball.x - 100)) / initial.width * 100}%`;
-    tooltip.style.top = `${Math.min(initial.height - 70, ball.y + ball.radius + 12) / initial.height * 100}%`;
+    const bx = table.xs[hover], by = table.ys[hover];
+    tooltip.style.left = `${Math.max(12, Math.min(initial.width - 232, bx - 100)) / initial.width * 100}%`;
+    tooltip.style.top = `${Math.min(initial.height - 70, by + initial.radius + 12) / initial.height * 100}%`;
   }
 }
 async function frame() {
