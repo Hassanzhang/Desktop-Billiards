@@ -51,10 +51,19 @@ Windows 也可以运行 `pwsh -File build.ps1`；依赖已装好时加 `-SkipDep
 - [TASKS.md](TASKS.md)：任务和验收状态。
 - [VALIDATION.md](VALIDATION.md)：实际验证证据。
 
-原 `app.pyw`、`dib/`、Python 依赖、测试及 `build-python-legacy.ps1` 仅用于旧版对照。旧版下载可在 [上游发布页](https://github.com/liuxiaogang-com/desktop-icon-billiards/releases) 查找；旧 `update.json` 和 [docs/UPDATE.md](docs/UPDATE.md) 仍属于 Python Windows EXE，不是 Rust 版更新源。
+原 `app.pyw`、`dib/`、Python 依赖、测试及 `build-python-legacy.ps1` 仍在基线提交 `db053ad` 中，待调用检查后从当前树移除。旧版下载可在 [上游发布页](https://github.com/liuxiaogang-com/desktop-icon-billiards/releases) 查找；旧 `update.json` 和 [docs/UPDATE.md](docs/UPDATE.md) 仍属于 Python Windows EXE，不是 Rust 版更新源。
 
 当前应用不截屏、不采集音频、不主动请求网络；只读取桌面项目名并通过系统接口提取图标。没有自动更新下载行为。
 
 ## 许可证
 
 [MIT](LICENSE) · Copyright (c) 2025–2026 LXG
+
+
+## 磁盘占用
+
+本轮已将 `.app` 保存到 `dist/Desktop Icon Billiards.app`，校验文件一致后清理 Rust `target` 与可重新安装的 `node_modules`。源码加应用约 14 MB（不含 Git 历史）。后续运行前先 `npm ci`。
+
+Cargo 开发／测试配置关闭调试符号和增量缓存，发布配置剥离符号。依赖仍需编译，后续构建缓存仍会增长，这些设置不能保证 Rust 编译目录始终只有几 MB。保留应用后可运行 `cargo clean --manifest-path src-tauri/Cargo.toml`。
+
+功能与验证入口：[FEATURE_MAP.md](FEATURE_MAP.md)、[项目本地验证 skill](.agents/skills/verify-desktop-billiards/SKILL.md)。

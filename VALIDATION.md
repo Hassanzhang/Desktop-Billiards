@@ -50,3 +50,20 @@
 - 原生操作工具 `cua.getState()` 返回 `js execution timed out; kernel reset, rerun your request`（界面连接超时），未完成小组件可见环境的视觉验收。CoreGraphics 当前会话未返回可用窗口列表，因此未据此推断小组件的实际层级。
 - 待实机确认：重启新应用，开始真实桌面模式，天气／日历不覆盖台面；切换普通应用仍可遮住台面；退出后桌面小组件正常显示。无需关闭或修改 macOS 小组件设置。
 - 工作区仍非 Git 仓库，未创建提交或发布标签。
+
+
+## T-008 / T-009 · 2026-11-11 · 体积清理与审查基线
+
+- 将原 macOS `.app` 复制至 `dist/Desktop Icon Billiards.app`，逐文件 SHA-256 与原包一致后执行 `cargo clean`：移除 13985 个文件、5.4 GiB。删除可由 `npm ci` 重装的 Node 依赖后目录约 14 MB；随后按用户要求初始化 Git，基线为 `db053ad`。并行工作流随后重新构建，`target` 又增长至约 1.1 GB；未打断或清理其他正在进行的构建。
+- Cargo profile 已设为开发／测试 `debug=0`、`incremental=false`；发布 `strip="symbols"`。`cargo metadata --no-deps --locked` 通过，未为检查这些配置重新生成完整应用缓存。不宣称未来编译目录永远保持几 MB。
+- `node tests/desktop-loading.mjs`、`node tests/table-input.mjs` 通过。验证 skill 经 `uv run --no-project --with pyyaml python .../quick_validate.py .agents/skills/verify-desktop-billiards` 检查通过。首次直接运行因 `ModuleNotFoundError: No module named 'yaml'`（缺少验证器依赖）失败，改用隔离工具环境，不为产品添加 Python 依赖。
+- 独立微基准直接引用当时实际 `physics.rs`，Rust 1.99.1、macOS ARM64、未优化且无调试符号，每场景 500 样本，1600×1000 模拟台面。测量范围仅为静止态 `update_guide` 加 `serde_json::to_vec(Table)`，不含 IPC、显示器查询、锁或 Canvas：
+
+| 模拟图标数 | 中位数 ms | p95 ms | JSON 字节数 |
+|---|---:|---:|---:|
+| 15 | 0.1023 | 0.1655 | 2431 |
+| 60 | 0.1373 | 0.1645 | 5560 |
+| 300 | 0.5262 | 0.5499 | 32630 |
+
+- 同一个独立 crate 重跑实际物理模块的 7 项 Rust 行为测试，全部通过，球阵边界失败未再复现。此检查不是完整 Tauri 应用回归，不代表并行编辑后的最终构建已验收。临时微基准与编译缓存随后移除，保留本记录中的实际结果。
+- 此时检测到渲染器、物理、输入测试、图片资源和 package scripts 持续发生非本轮编辑；未移动这些文件、删除旧产品或覆盖其改动。Feature Map 记录当前结构缺项，未将目录整改、领域状态收拢或性能优化标为完成。
