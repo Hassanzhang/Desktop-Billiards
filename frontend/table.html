@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>台球台面</title><link rel="stylesheet" href="style.css"><script type="module" src="table.js"></script></head>
+<body class="table">
+  <canvas id="table" aria-label="台球台面：移动鼠标瞄准，按住左键向后拉杆，松手击球。方向键或滚轮微调角度；也可选择侧边力度后按 Enter 击球。按 Esc 退出。" tabindex="0"></canvas>
+  <aside id="shot-controls" class="shot-controls" aria-label="击球力度">
+    <label for="power">力度</label>
+    <output id="power-value" for="power">35%</output>
+    <input id="power" type="range" min="1" max="100" value="35" aria-label="击球力度百分比" aria-orientation="vertical">
+    <button id="shoot" title="按所选力度击球（Enter）">击球</button>
+  </aside>
+  <div id="table-score" class="table-score" aria-label="清台进度与计时"></div>
+  <p id="table-hint" class="table-hint" role="status">移动瞄准 · 按住向后拉杆 · 松手击球</p>
+  <div class="demo-label" id="demo-label" hidden>窗口试玩 · 示例图标</div>
+  <div id="file-name" class="file-name" role="tooltip" hidden></div>
+  <p id="table-error" role="alert"></p>
+</body>
+</html>

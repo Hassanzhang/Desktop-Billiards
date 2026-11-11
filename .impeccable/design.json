@@ -1,0 +1,562 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T07:29:23.978217+00:00",
+  "title": "Design System: Desktop Icon Billiards",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "background",
+        "tonalRamp": [
+          "oklch(15% 0.0080 153.33)",
+          "oklch(26% 0.0080 153.33)",
+          "oklch(38% 0.0080 153.33)",
+          "oklch(49% 0.0080 153.33)",
+          "oklch(61% 0.0080 153.33)",
+          "oklch(72% 0.0080 153.33)",
+          "oklch(84% 0.0080 153.33)",
+          "oklch(95% 0.0080 153.33)"
+        ]
+      },
+      "panel-background": {
+        "role": "neutral",
+        "displayName": "panel-background",
+        "tonalRamp": [
+          "oklch(15% 0.0176 182.91)",
+          "oklch(26% 0.0176 182.91)",
+          "oklch(38% 0.0176 182.91)",
+          "oklch(49% 0.0176 182.91)",
+          "oklch(61% 0.0176 182.91)",
+          "oklch(72% 0.0176 182.91)",
+          "oklch(84% 0.0176 182.91)",
+          "oklch(95% 0.0176 182.91)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "text",
+        "tonalRamp": [
+          "oklch(15% 0.0187 171.50)",
+          "oklch(26% 0.0187 171.50)",
+          "oklch(38% 0.0187 171.50)",
+          "oklch(49% 0.0187 171.50)",
+          "oklch(61% 0.0187 171.50)",
+          "oklch(72% 0.0187 171.50)",
+          "oklch(84% 0.0187 171.50)",
+          "oklch(95% 0.0187 171.50)"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "text-muted",
+        "tonalRamp": [
+          "oklch(15% 0.0324 171.12)",
+          "oklch(26% 0.0324 171.12)",
+          "oklch(38% 0.0324 171.12)",
+          "oklch(49% 0.0324 171.12)",
+          "oklch(61% 0.0324 171.12)",
+          "oklch(72% 0.0324 171.12)",
+          "oklch(84% 0.0324 171.12)",
+          "oklch(95% 0.0324 171.12)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "primary",
+        "tonalRamp": [
+          "oklch(15% 0.1226 167.07)",
+          "oklch(26% 0.1226 167.07)",
+          "oklch(38% 0.1226 167.07)",
+          "oklch(49% 0.1226 167.07)",
+          "oklch(61% 0.1226 167.07)",
+          "oklch(72% 0.1226 167.07)",
+          "oklch(84% 0.1226 167.07)",
+          "oklch(95% 0.1226 167.07)"
+        ]
+      },
+      "primary-hover": {
+        "role": "neutral",
+        "displayName": "primary-hover",
+        "tonalRamp": [
+          "oklch(15% 0.1067 169.76)",
+          "oklch(26% 0.1067 169.76)",
+          "oklch(38% 0.1067 169.76)",
+          "oklch(49% 0.1067 169.76)",
+          "oklch(61% 0.1067 169.76)",
+          "oklch(72% 0.1067 169.76)",
+          "oklch(84% 0.1067 169.76)",
+          "oklch(95% 0.1067 169.76)"
+        ]
+      },
+      "button": {
+        "role": "neutral",
+        "displayName": "button",
+        "tonalRamp": [
+          "oklch(15% 0.0301 171.02)",
+          "oklch(26% 0.0301 171.02)",
+          "oklch(38% 0.0301 171.02)",
+          "oklch(49% 0.0301 171.02)",
+          "oklch(61% 0.0301 171.02)",
+          "oklch(72% 0.0301 171.02)",
+          "oklch(84% 0.0301 171.02)",
+          "oklch(95% 0.0301 171.02)"
+        ]
+      },
+      "button-hover": {
+        "role": "neutral",
+        "displayName": "button-hover",
+        "tonalRamp": [
+          "oklch(15% 0.0444 166.18)",
+          "oklch(26% 0.0444 166.18)",
+          "oklch(38% 0.0444 166.18)",
+          "oklch(49% 0.0444 166.18)",
+          "oklch(61% 0.0444 166.18)",
+          "oklch(72% 0.0444 166.18)",
+          "oklch(84% 0.0444 166.18)",
+          "oklch(95% 0.0444 166.18)"
+        ]
+      },
+      "button-active": {
+        "role": "neutral",
+        "displayName": "button-active",
+        "tonalRamp": [
+          "oklch(15% 0.0546 167.38)",
+          "oklch(26% 0.0546 167.38)",
+          "oklch(38% 0.0546 167.38)",
+          "oklch(49% 0.0546 167.38)",
+          "oklch(61% 0.0546 167.38)",
+          "oklch(72% 0.0546 167.38)",
+          "oklch(84% 0.0546 167.38)",
+          "oklch(95% 0.0546 167.38)"
+        ]
+      },
+      "button-border": {
+        "role": "neutral",
+        "displayName": "button-border",
+        "tonalRamp": [
+          "oklch(15% 0.0403 172.20)",
+          "oklch(26% 0.0403 172.20)",
+          "oklch(38% 0.0403 172.20)",
+          "oklch(49% 0.0403 172.20)",
+          "oklch(61% 0.0403 172.20)",
+          "oklch(72% 0.0403 172.20)",
+          "oklch(84% 0.0403 172.20)",
+          "oklch(95% 0.0403 172.20)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "focus",
+        "tonalRamp": [
+          "oklch(15% 0.0976 165.10)",
+          "oklch(26% 0.0976 165.10)",
+          "oklch(38% 0.0976 165.10)",
+          "oklch(49% 0.0976 165.10)",
+          "oklch(61% 0.0976 165.10)",
+          "oklch(72% 0.0976 165.10)",
+          "oklch(84% 0.0976 165.10)",
+          "oklch(95% 0.0976 165.10)"
+        ]
+      },
+      "error": {
+        "role": "neutral",
+        "displayName": "error",
+        "tonalRamp": [
+          "oklch(15% 0.0577 45.27)",
+          "oklch(26% 0.0577 45.27)",
+          "oklch(38% 0.0577 45.27)",
+          "oklch(49% 0.0577 45.27)",
+          "oklch(61% 0.0577 45.27)",
+          "oklch(72% 0.0577 45.27)",
+          "oklch(84% 0.0577 45.27)",
+          "oklch(95% 0.0577 45.27)"
+        ]
+      },
+      "wood-start": {
+        "role": "secondary",
+        "displayName": "wood-start",
+        "tonalRamp": [
+          "oklch(15% 0.0527 49.20)",
+          "oklch(26% 0.0527 49.20)",
+          "oklch(38% 0.0527 49.20)",
+          "oklch(49% 0.0527 49.20)",
+          "oklch(61% 0.0527 49.20)",
+          "oklch(72% 0.0527 49.20)",
+          "oklch(84% 0.0527 49.20)",
+          "oklch(95% 0.0527 49.20)"
+        ]
+      },
+      "wood-light": {
+        "role": "secondary",
+        "displayName": "wood-light",
+        "tonalRamp": [
+          "oklch(15% 0.0780 58.53)",
+          "oklch(26% 0.0780 58.53)",
+          "oklch(38% 0.0780 58.53)",
+          "oklch(49% 0.0780 58.53)",
+          "oklch(61% 0.0780 58.53)",
+          "oklch(72% 0.0780 58.53)",
+          "oklch(84% 0.0780 58.53)",
+          "oklch(95% 0.0780 58.53)"
+        ]
+      },
+      "wood-middle": {
+        "role": "secondary",
+        "displayName": "wood-middle",
+        "tonalRamp": [
+          "oklch(15% 0.0597 55.49)",
+          "oklch(26% 0.0597 55.49)",
+          "oklch(38% 0.0597 55.49)",
+          "oklch(49% 0.0597 55.49)",
+          "oklch(61% 0.0597 55.49)",
+          "oklch(72% 0.0597 55.49)",
+          "oklch(84% 0.0597 55.49)",
+          "oklch(95% 0.0597 55.49)"
+        ]
+      },
+      "wood-end": {
+        "role": "secondary",
+        "displayName": "wood-end",
+        "tonalRamp": [
+          "oklch(15% 0.0294 46.28)",
+          "oklch(26% 0.0294 46.28)",
+          "oklch(38% 0.0294 46.28)",
+          "oklch(49% 0.0294 46.28)",
+          "oklch(61% 0.0294 46.28)",
+          "oklch(72% 0.0294 46.28)",
+          "oklch(84% 0.0294 46.28)",
+          "oklch(95% 0.0294 46.28)"
+        ]
+      },
+      "felt-center": {
+        "role": "secondary",
+        "displayName": "felt-center",
+        "tonalRamp": [
+          "oklch(15% 0.0860 173.74)",
+          "oklch(26% 0.0860 173.74)",
+          "oklch(38% 0.0860 173.74)",
+          "oklch(49% 0.0860 173.74)",
+          "oklch(61% 0.0860 173.74)",
+          "oklch(72% 0.0860 173.74)",
+          "oklch(84% 0.0860 173.74)",
+          "oklch(95% 0.0860 173.74)"
+        ]
+      },
+      "felt-edge": {
+        "role": "secondary",
+        "displayName": "felt-edge",
+        "tonalRamp": [
+          "oklch(15% 0.0628 174.58)",
+          "oklch(26% 0.0628 174.58)",
+          "oklch(38% 0.0628 174.58)",
+          "oklch(49% 0.0628 174.58)",
+          "oklch(61% 0.0628 174.58)",
+          "oklch(72% 0.0628 174.58)",
+          "oklch(84% 0.0628 174.58)",
+          "oklch(95% 0.0628 174.58)"
+        ]
+      },
+      "cushion-light": {
+        "role": "secondary",
+        "displayName": "cushion-light",
+        "tonalRamp": [
+          "oklch(15% 0.0961 168.01)",
+          "oklch(26% 0.0961 168.01)",
+          "oklch(38% 0.0961 168.01)",
+          "oklch(49% 0.0961 168.01)",
+          "oklch(61% 0.0961 168.01)",
+          "oklch(72% 0.0961 168.01)",
+          "oklch(84% 0.0961 168.01)",
+          "oklch(95% 0.0961 168.01)"
+        ]
+      },
+      "cushion-middle": {
+        "role": "secondary",
+        "displayName": "cushion-middle",
+        "tonalRamp": [
+          "oklch(15% 0.0830 167.93)",
+          "oklch(26% 0.0830 167.93)",
+          "oklch(38% 0.0830 167.93)",
+          "oklch(49% 0.0830 167.93)",
+          "oklch(61% 0.0830 167.93)",
+          "oklch(72% 0.0830 167.93)",
+          "oklch(84% 0.0830 167.93)",
+          "oklch(95% 0.0830 167.93)"
+        ]
+      },
+      "cushion-dark": {
+        "role": "secondary",
+        "displayName": "cushion-dark",
+        "tonalRamp": [
+          "oklch(15% 0.0585 165.06)",
+          "oklch(26% 0.0585 165.06)",
+          "oklch(38% 0.0585 165.06)",
+          "oklch(49% 0.0585 165.06)",
+          "oklch(61% 0.0585 165.06)",
+          "oklch(72% 0.0585 165.06)",
+          "oklch(84% 0.0585 165.06)",
+          "oklch(95% 0.0585 165.06)"
+        ]
+      },
+      "brass": {
+        "role": "secondary",
+        "displayName": "brass",
+        "tonalRamp": [
+          "oklch(15% 0.0781 84.60)",
+          "oklch(26% 0.0781 84.60)",
+          "oklch(38% 0.0781 84.60)",
+          "oklch(49% 0.0781 84.60)",
+          "oklch(61% 0.0781 84.60)",
+          "oklch(72% 0.0781 84.60)",
+          "oklch(84% 0.0781 84.60)",
+          "oklch(95% 0.0781 84.60)"
+        ]
+      },
+      "cue-ball": {
+        "role": "neutral",
+        "displayName": "cue-ball",
+        "tonalRamp": [
+          "oklch(15% 0.0229 95.96)",
+          "oklch(26% 0.0229 95.96)",
+          "oklch(38% 0.0229 95.96)",
+          "oklch(49% 0.0229 95.96)",
+          "oklch(61% 0.0229 95.96)",
+          "oklch(72% 0.0229 95.96)",
+          "oklch(84% 0.0229 95.96)",
+          "oklch(95% 0.0229 95.96)"
+        ]
+      },
+      "shot-background": {
+        "role": "neutral",
+        "displayName": "shot-background",
+        "tonalRamp": [
+          "oklch(15% 0.0173 82.25)",
+          "oklch(26% 0.0173 82.25)",
+          "oklch(38% 0.0173 82.25)",
+          "oklch(49% 0.0173 82.25)",
+          "oklch(61% 0.0173 82.25)",
+          "oklch(72% 0.0173 82.25)",
+          "oklch(84% 0.0173 82.25)",
+          "oklch(95% 0.0173 82.25)"
+        ]
+      },
+      "shot-border": {
+        "role": "neutral",
+        "displayName": "shot-border",
+        "tonalRamp": [
+          "oklch(15% 0.0451 80.42)",
+          "oklch(26% 0.0451 80.42)",
+          "oklch(38% 0.0451 80.42)",
+          "oklch(49% 0.0451 80.42)",
+          "oklch(61% 0.0451 80.42)",
+          "oklch(72% 0.0451 80.42)",
+          "oklch(84% 0.0451 80.42)",
+          "oklch(95% 0.0451 80.42)"
+        ]
+      },
+      "shot-text": {
+        "role": "neutral",
+        "displayName": "shot-text",
+        "tonalRamp": [
+          "oklch(15% 0.0444 88.53)",
+          "oklch(26% 0.0444 88.53)",
+          "oklch(38% 0.0444 88.53)",
+          "oklch(49% 0.0444 88.53)",
+          "oklch(61% 0.0444 88.53)",
+          "oklch(72% 0.0444 88.53)",
+          "oklch(84% 0.0444 88.53)",
+          "oklch(95% 0.0444 88.53)"
+        ]
+      },
+      "shot-accent": {
+        "role": "neutral",
+        "displayName": "shot-accent",
+        "tonalRamp": [
+          "oklch(15% 0.0868 85.43)",
+          "oklch(26% 0.0868 85.43)",
+          "oklch(38% 0.0868 85.43)",
+          "oklch(49% 0.0868 85.43)",
+          "oklch(61% 0.0868 85.43)",
+          "oklch(72% 0.0868 85.43)",
+          "oklch(84% 0.0868 85.43)",
+          "oklch(95% 0.0868 85.43)"
+        ]
+      },
+      "table-focus": {
+        "role": "neutral",
+        "displayName": "table-focus",
+        "tonalRamp": [
+          "oklch(15% 0.0800 85.36)",
+          "oklch(26% 0.0800 85.36)",
+          "oklch(38% 0.0800 85.36)",
+          "oklch(49% 0.0800 85.36)",
+          "oklch(61% 0.0800 85.36)",
+          "oklch(72% 0.0800 85.36)",
+          "oklch(84% 0.0800 85.36)",
+          "oklch(95% 0.0800 85.36)"
+        ]
+      },
+      "tooltip-background": {
+        "role": "neutral",
+        "displayName": "tooltip-background",
+        "tonalRamp": [
+          "oklch(15% 0.0224 166.15)",
+          "oklch(26% 0.0224 166.15)",
+          "oklch(38% 0.0224 166.15)",
+          "oklch(49% 0.0224 166.15)",
+          "oklch(61% 0.0224 166.15)",
+          "oklch(72% 0.0224 166.15)",
+          "oklch(84% 0.0224 166.15)",
+          "oklch(95% 0.0224 166.15)"
+        ]
+      },
+      "tooltip-text": {
+        "role": "neutral",
+        "displayName": "tooltip-text",
+        "tonalRamp": [
+          "oklch(15% 0.0357 91.13)",
+          "oklch(26% 0.0357 91.13)",
+          "oklch(38% 0.0357 91.13)",
+          "oklch(49% 0.0357 91.13)",
+          "oklch(61% 0.0357 91.13)",
+          "oklch(72% 0.0357 91.13)",
+          "oklch(84% 0.0357 91.13)",
+          "oklch(95% 0.0357 91.13)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "面板标题",
+        "purpose": "既有控制面板标题。"
+      },
+      "body": {
+        "displayName": "正文",
+        "purpose": "控制面板正文。"
+      },
+      "label": {
+        "displayName": "台面标签",
+        "purpose": "力度、进度、文件名与操作说明。"
+      },
+      "statistic": {
+        "displayName": "统计数字",
+        "purpose": "既有控制面板统计值。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "file-name",
+        "value": "0 3px 10px #0005",
+        "purpose": "悬停文件名浮层。"
+      },
+      {
+        "name": "canvas-wood",
+        "value": "color:#0009; blur:20; offsetX:0; offsetY:10",
+        "purpose": "Canvas 木框，非 CSS box-shadow。"
+      },
+      {
+        "name": "canvas-ball",
+        "value": "color:#02130fb3; blur:5; offsetX:2; offsetY:4",
+        "purpose": "Canvas 球接触阴影，非 CSS box-shadow。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "stroke",
+        "value": "0.12s; gap *= 1 - stroke_progress ** 1.6",
+        "purpose": "球杆前送末端触球；不是 CSS easing。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "short-viewport",
+        "value": "max-height:500px"
+      }
+    ],
+    "provenance": {
+      "sources": [
+        "frontend/style.css",
+        "frontend/table.html",
+        "frontend/table.js",
+        "frontend/table-renderer.js",
+        "src-tauri/src/physics.rs",
+        "PRODUCT.md",
+        ".impeccable/surfaces/frontend-table-js.md"
+      ],
+      "verification": "source-extracted; native wallpaper build not visually verified",
+      "tonalRamps": "仅供面板展示的合成 OKLCH 色阶，不是源码定义的可用 token；透明 token 的色阶展示其 RGB 基色。"
+    }
+  },
+  "components": [
+    {
+      "name": "面板按钮",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "沿用面板的次要操作。",
+      "html": "<button class=\"ds-button\">重新开始</button>",
+      "css": ".ds-button{font:13px \"Microsoft YaHei UI\",-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;line-height:1.4;border:1px solid #3b5a50;border-radius:6px;color:#e2f2ec;background:#1b3029;padding:7px 11px;cursor:pointer;white-space:nowrap;}.ds-button:hover{background:#28483b}.ds-button:active{background:#335d4d}.ds-button:disabled{cursor:wait;opacity:.55}.ds-button:focus-visible{outline:2px solid #9ff4cf;outline-offset:3px}"
+    },
+    {
+      "name": "面板主按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "薄荷色主要操作。",
+      "html": "<button class=\"ds-button ds-primary\">开始游戏</button>",
+      "css": ".ds-button{font:13px \"Microsoft YaHei UI\",-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;line-height:1.4;border:1px solid #3b5a50;border-radius:6px;color:#e2f2ec;background:#1b3029;padding:7px 11px;cursor:pointer;white-space:nowrap;}.ds-button:hover{background:#28483b}.ds-button:active{background:#335d4d}.ds-button:disabled{cursor:wait;opacity:.55}.ds-button:focus-visible{outline:2px solid #9ff4cf;outline-offset:3px}.ds-primary{background:#69ddb3;color:#0d1917;border-color:#69ddb3;font-weight:600}.ds-primary:hover{background:#86eac8}"
+    },
+    {
+      "name": "击球按钮",
+      "kind": "button",
+      "refersTo": "button-shot",
+      "description": "ready 且未拉杆时可用；保持实际固定背景行为。",
+      "html": "<button class=\"ds-button ds-shot\">击球</button>",
+      "css": ".ds-button{font:13px \"Microsoft YaHei UI\",-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;line-height:1.4;border:1px solid #3b5a50;border-radius:6px;color:#e2f2ec;background:#1b3029;padding:7px 11px;cursor:pointer;white-space:nowrap;}.ds-button:hover{background:#28483b}.ds-button:active{background:#335d4d}.ds-button:disabled{cursor:wait;opacity:.55}.ds-button:focus-visible{outline:2px solid #9ff4cf;outline-offset:3px}.ds-shot{padding:8px 5px;min-height:40px;width:46px;font-size:12px;background:#302b22;border-color:#706045;color:#f2e5c5}"
+    },
+    {
+      "name": "力度范围",
+      "kind": "input",
+      "description": "原生竖向力度输入，实际脚本同步 charge。",
+      "html": "<input class=\"ds-power\" type=\"range\" min=\"1\" max=\"100\" value=\"35\" aria-label=\"击球力度百分比\" aria-orientation=\"vertical\">",
+      "css": ".ds-power{writing-mode:vertical-lr;direction:rtl;appearance:auto;width:44px;height:160px;accent-color:#d3b678;cursor:ns-resize;margin:0}.ds-power:focus-visible{outline:2px solid #e1c68a;outline-offset:2px}.ds-power:disabled{cursor:default;opacity:.8}"
+    },
+    {
+      "name": "悬停文件名",
+      "kind": "custom",
+      "refersTo": "tooltip",
+      "description": "ready 时悬停图标球显示；本片段展示已显示的浮层外观。",
+      "html": "<div class=\"ds-file\" role=\"tooltip\">项目文档.pdf</div>",
+      "css": ".ds-file{max-width:220px;padding:7px 10px;border-radius:4px;background:#17251fed;color:#f1e8ce;font:12px \"Microsoft YaHei UI\",-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;line-height:1.5;overflow-wrap:anywhere;pointer-events:none;box-shadow:0 3px 10px #0005}"
+    }
+  ],
+  "narrative": {
+    "northStar": "桌面上的经典球桌",
+    "overview": "以清晰桌面壁纸、暖木框、绿色橡胶库边、黄铜菱形点和暗皮袋组织台面；没有可用壁纸时才显示绿布。真实文件图标被裁进统一圆球，以球面高光和接触阴影保持可击打的体积感。\n\n界面保持低密度：Canvas 承载球桌与运动，系统字体承担进度、力度和操作说明。本文记录源码已实现的视觉规则；壁纸内容由用户桌面决定，不指定固定色调或图片资产。",
+    "keyCharacteristics": [
+      "桌内外共享同一幅壁纸的完整桌面 cover 坐标，桌内不加模糊或呢面。",
+      "木框、库边、袋口、球面以 Canvas 程序绘制。",
+      "后拉锁定方向，前送末端触球，侧栏显示同一力度。"
+    ],
+    "rules": [
+      {
+        "name": "Shared Wallpaper",
+        "body": "桌内外必须复用完整桌面的居中 cover 变换；桌外可压暗，桌内直接显示清晰原图。",
+        "section": "colors"
+      },
+      {
+        "name": "Shared Geometry",
+        "body": "渲染直接消费物理引擎的 bounds、pockets、cushions 与球半径，不为视觉效果另造碰撞边界。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 复用物理引擎输出的球半径、库边多边形与六袋位置。",
+      "Do 保持桌内壁纸清晰、圆球裁切和木库材质；壁纸加载失败时回退绿布。",
+      "Do 通过力度百分比、状态文案和焦点轮廓提供操作反馈。"
+    ],
+    "donts": [
+      "Don't 为当前台面添加音效；用户已明确取消。",
+      "Don't 将真实文件图标替换为模拟桌面图标并冒充真实桌面。",
+      "Don't 将旧绿布截图视为最新壁纸台面的原生实拍或验收证据。"
+    ]
+  }
+}

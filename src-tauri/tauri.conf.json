@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Desktop Icon Billiards",
+  "version": "0.1.1",
+  "identifier": "com.desktop-icon-billiards.game",
+  "build": {
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "桌面图标台球",
+        "width": 460,
+        "height": 280,
+        "resizable": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "../assets/desktop-icon-billiards.png",
+      "../assets/desktop-icon-billiards.ico"
+    ],
+    "macOS": {
+      "entitlements": "Entitlements.plist"
+    }
+  }
+}

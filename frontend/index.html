@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>桌面图标台球</title><link rel="stylesheet" href="style.css"><script type="module" src="main.js"></script></head>
+<body class="controls">
+<main>
+  <div class="heading"><h1>桌面图标台球</h1><button id="guide" aria-pressed="true">辅助线 · 开</button></div>
+  <p id="hint" role="status">鼠标瞄准 · 向后拉杆 · 松手击球</p>
+  <dl class="stats"><div><dt>本局用时</dt><dd id="time">00:00</dd></div><div><dt>图标入袋</dt><dd id="count">—</dd></div><div><dt>剩余图标</dt><dd id="remaining">—</dd></div></dl>
+  <div class="actions"><button id="start" class="primary">开始桌面游戏</button><button id="demo">窗口试玩</button><button id="restart" hidden>重新开始</button><button id="stop" hidden>结束本局</button><button id="quit">退出</button></div>
+  <p id="error" role="alert" hidden></p>
+  <footer><span id="mode">Esc / Ctrl+Alt+X 退出</span><span>Rust + Tauri · v0.1.1</span></footer>
+</main>
+</body></html>
