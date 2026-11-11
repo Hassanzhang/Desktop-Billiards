@@ -18,6 +18,7 @@ let nextFrame;
 let table = { phase: 'ready', pulling: false, charge: 0, seconds: 0, balls: [{ x: 100, y: 100, radius: 20, sunk: false }, { x: 500, y: 350, radius: 20, sunk: false }] };
 const context = vm.createContext({
   document: { getElementById: element },
+  Image: class { set src(_) { queueMicrotask(() => this.onload()); } },
   window: {
     __TAURI__: { core: { invoke: async (command, args) => {
       if (command === 'initial') return { width: 1000, height: 700, items: [{ name: 'test', image: '' }], demo: true, guide: true };

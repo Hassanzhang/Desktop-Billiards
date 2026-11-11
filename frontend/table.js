@@ -99,6 +99,7 @@ try {
   const background = initial.wallpaper ? await loadImage(initial.wallpaper).catch(() => null) : null;
   $('demo-label').hidden = !initial.demo;
   const images = await Promise.all(initial.items.map(item => item.image ? loadImage(item.image).catch(() => { throw new Error(`图标加载失败：${item.name}`); }) : null));
-  render = createRenderer(canvas, initial, images, background);
+  const frameAsset = await loadImage('assets/table-frame.png');
+  render = createRenderer(canvas, initial, images, background, frameAsset);
   canvas.focus(); frame();
 } catch (error) { $('table-error').textContent = `${error}\n请在控制面板结束本局后重试。`; }

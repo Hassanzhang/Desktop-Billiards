@@ -55,7 +55,6 @@ pub struct Table {
     pub cue_follow: f64,
     pub stroke_origin: [f64; 2],
     pub ghost: Option<[f64; 2]>,
-    pub tile: f64,
     pub balls: Vec<Ball>,
     pub phase: Phase,
     pub aim: [f64; 2],
@@ -73,7 +72,12 @@ pub struct Table {
 }
 impl Table {
     pub fn new(width: f64, height: f64, count: usize) -> Self {
-        let [l, t, r, b] = [width * 0.06, height * 0.09, width * 0.94, height * 0.91];
+        let [l, t, r, b] = [
+            (width * 0.09).max(112.),
+            height * 0.11,
+            width * 0.94,
+            height * 0.89,
+        ];
         let w = r - l;
         let h = b - t;
         let columns = ((((8 * count + 1) as f64).sqrt() - 1.) / 2.).ceil().max(1.) as usize;
@@ -109,10 +113,10 @@ impl Table {
             bounds: [l, t, r, b],
             pockets: [
                 [l, t],
-                [(l + r) / 2., t],
+                [(l + r) / 2., t - pocket_radius * 14. / 55.],
                 [r, t],
                 [l, b],
-                [(l + r) / 2., b],
+                [(l + r) / 2., b + pocket_radius * 14. / 55.],
                 [r, b],
             ],
             pocket_radius,
@@ -124,7 +128,6 @@ impl Table {
             cue_follow: 0.,
             stroke_origin: [0., 0.],
             ghost: None,
-            tile: 64_f64.min(pitch * 0.7),
             balls,
             phase: Phase::Ready,
             aim: [1., 0.022],

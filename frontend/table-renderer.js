@@ -1,7 +1,8 @@
+import { drawFrameSkin } from './frame-skin.js';
 const TAU = Math.PI * 2;
 const ballColors = ['#eee9da', '#e7b42a', '#2166ae', '#b52e32', '#6b408b', '#df762b', '#24765a', '#8c3039', '#22282b'];
 
-export function createRenderer(canvas, initial, images, background) {
+export function createRenderer(canvas, initial, images, background, frameAsset) {
   const ctx = canvas.getContext('2d');
   let surface;
   const circle = (x, y, radius, fill) => {
@@ -30,21 +31,6 @@ export function createRenderer(canvas, initial, images, background) {
       ctx.fillStyle = '#11191399'; ctx.fillRect(0, 0, width, height);
     }
     const [l, t, r, b] = table.bounds;
-    const edge = table.rail_depth + 21;
-    ctx.save();
-    ctx.shadowColor = '#0009'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
-    ctx.beginPath(); ctx.roundRect(l - edge, t - edge, r - l + edge * 2, b - t + edge * 2, 26);
-    const wood = ctx.createLinearGradient(l, t - edge, r, b + edge);
-    wood.addColorStop(0, '#533423'); wood.addColorStop(.32, '#895c38'); wood.addColorStop(.7, '#65432b'); wood.addColorStop(1, '#38271f');
-    ctx.fillStyle = wood; ctx.fill(); ctx.shadowColor = 'transparent'; ctx.clip();
-    // Grain belongs to the wood, never to the playing cloth or UI.
-    for (let i = 0; i < 100; i++) {
-      const y = t - edge + i * (b - t + edge * 2) / 100;
-      ctx.beginPath(); ctx.moveTo(l - edge, y);
-      ctx.bezierCurveTo(l + (r - l) * .3, y + 9, l + (r - l) * .6, y - 9, r + edge, y + 2);
-      ctx.strokeStyle = i % 3 === 0 ? '#1d100d24' : '#f2cf8e12'; ctx.lineWidth = 1; ctx.stroke();
-    }
-    ctx.restore();
     if (background) {
       ctx.save(); ctx.beginPath(); ctx.rect(l - 5, t - 5, r - l + 10, b - t + 10); ctx.clip();
       // Keep the same full-desktop crop inside and outside the table, without blur or felt.
@@ -65,38 +51,7 @@ export function createRenderer(canvas, initial, images, background) {
       }
       ctx.fillStyle = ctx.createPattern(texture, 'repeat'); ctx.fillRect(l, t, r - l, b - t);
     }
-    // Leather collars sit within the wood; the cushion jaws overlap their edges.
-    for (const [x, y] of table.pockets) {
-      circle(x, y, table.pocket_radius + 8, '#302921');
-      circle(x, y + 1, table.pocket_radius + 3, '#101612');
-      const well = ctx.createRadialGradient(x, y + 8, 1, x, y, table.pocket_radius);
-      well.addColorStop(0, '#010403'); well.addColorStop(.8, '#050b08'); well.addColorStop(1, '#18231b');
-      circle(x, y, table.pocket_radius, well);
-      ctx.beginPath(); ctx.arc(x, y, table.pocket_radius + 5, Math.PI, TAU);
-      ctx.strokeStyle = '#a58b5c66'; ctx.lineWidth = 1; ctx.stroke();
-    }
-    for (const points of table.cushions) {
-      const center = points.reduce((s, p) => [s[0] + p[0] / 4, s[1] + p[1] / 4], [0, 0]);
-      const bevel = ctx.createLinearGradient(...points[0], ...center);
-      bevel.addColorStop(0, '#328b6e'); bevel.addColorStop(.25, '#226d55'); bevel.addColorStop(1, '#12402f');
-      path(points); ctx.fillStyle = bevel; ctx.fill();
-      line(points[0], points[1], '#7bb19666', 1.5);
-      line(points[2], points[3], '#17291d', 2);
-    }
-    const diamond = (x, y) => {
-      path([[x, y - 4], [x + 2.5, y], [x, y + 4], [x - 2.5, y]]);
-      ctx.fillStyle = '#d8bd86'; ctx.fill();
-    };
-    for (const f of [.125, .25, .375, .625, .75, .875]) {
-      diamond(l + (r - l) * f, t - table.rail_depth - 10);
-      diamond(l + (r - l) * f, b + table.rail_depth + 10);
-    }
-    for (const f of [.25, .5, .75]) {
-      diamond(l - table.rail_depth - 10, t + (b - t) * f);
-      diamond(r + table.rail_depth + 10, t + (b - t) * f);
-    }
-    circle(l + (r - l) * .2, (t + b) / 2, 2, '#d0e0be88');
-    circle(l + (r - l) * .52, (t + b) / 2, 2, '#d0e0be88');
+    drawFrameSkin(ctx, frameAsset, table);
   }
   function drawBall(ball, index) {
     const { x, y, radius: radius } = ball;

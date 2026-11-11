@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-11T07:29:23.978217+00:00",
+  "generatedAt": "2026-11-11T07:50:46.775790+00:00",
   "title": "Design System: Desktop Icon Billiards",
   "extensions": {
     "colorMeta": {
@@ -172,62 +172,6 @@
           "oklch(95% 0.0577 45.27)"
         ]
       },
-      "wood-start": {
-        "role": "secondary",
-        "displayName": "wood-start",
-        "tonalRamp": [
-          "oklch(15% 0.0527 49.20)",
-          "oklch(26% 0.0527 49.20)",
-          "oklch(38% 0.0527 49.20)",
-          "oklch(49% 0.0527 49.20)",
-          "oklch(61% 0.0527 49.20)",
-          "oklch(72% 0.0527 49.20)",
-          "oklch(84% 0.0527 49.20)",
-          "oklch(95% 0.0527 49.20)"
-        ]
-      },
-      "wood-light": {
-        "role": "secondary",
-        "displayName": "wood-light",
-        "tonalRamp": [
-          "oklch(15% 0.0780 58.53)",
-          "oklch(26% 0.0780 58.53)",
-          "oklch(38% 0.0780 58.53)",
-          "oklch(49% 0.0780 58.53)",
-          "oklch(61% 0.0780 58.53)",
-          "oklch(72% 0.0780 58.53)",
-          "oklch(84% 0.0780 58.53)",
-          "oklch(95% 0.0780 58.53)"
-        ]
-      },
-      "wood-middle": {
-        "role": "secondary",
-        "displayName": "wood-middle",
-        "tonalRamp": [
-          "oklch(15% 0.0597 55.49)",
-          "oklch(26% 0.0597 55.49)",
-          "oklch(38% 0.0597 55.49)",
-          "oklch(49% 0.0597 55.49)",
-          "oklch(61% 0.0597 55.49)",
-          "oklch(72% 0.0597 55.49)",
-          "oklch(84% 0.0597 55.49)",
-          "oklch(95% 0.0597 55.49)"
-        ]
-      },
-      "wood-end": {
-        "role": "secondary",
-        "displayName": "wood-end",
-        "tonalRamp": [
-          "oklch(15% 0.0294 46.28)",
-          "oklch(26% 0.0294 46.28)",
-          "oklch(38% 0.0294 46.28)",
-          "oklch(49% 0.0294 46.28)",
-          "oklch(61% 0.0294 46.28)",
-          "oklch(72% 0.0294 46.28)",
-          "oklch(84% 0.0294 46.28)",
-          "oklch(95% 0.0294 46.28)"
-        ]
-      },
       "felt-center": {
         "role": "secondary",
         "displayName": "felt-center",
@@ -254,62 +198,6 @@
           "oklch(72% 0.0628 174.58)",
           "oklch(84% 0.0628 174.58)",
           "oklch(95% 0.0628 174.58)"
-        ]
-      },
-      "cushion-light": {
-        "role": "secondary",
-        "displayName": "cushion-light",
-        "tonalRamp": [
-          "oklch(15% 0.0961 168.01)",
-          "oklch(26% 0.0961 168.01)",
-          "oklch(38% 0.0961 168.01)",
-          "oklch(49% 0.0961 168.01)",
-          "oklch(61% 0.0961 168.01)",
-          "oklch(72% 0.0961 168.01)",
-          "oklch(84% 0.0961 168.01)",
-          "oklch(95% 0.0961 168.01)"
-        ]
-      },
-      "cushion-middle": {
-        "role": "secondary",
-        "displayName": "cushion-middle",
-        "tonalRamp": [
-          "oklch(15% 0.0830 167.93)",
-          "oklch(26% 0.0830 167.93)",
-          "oklch(38% 0.0830 167.93)",
-          "oklch(49% 0.0830 167.93)",
-          "oklch(61% 0.0830 167.93)",
-          "oklch(72% 0.0830 167.93)",
-          "oklch(84% 0.0830 167.93)",
-          "oklch(95% 0.0830 167.93)"
-        ]
-      },
-      "cushion-dark": {
-        "role": "secondary",
-        "displayName": "cushion-dark",
-        "tonalRamp": [
-          "oklch(15% 0.0585 165.06)",
-          "oklch(26% 0.0585 165.06)",
-          "oklch(38% 0.0585 165.06)",
-          "oklch(49% 0.0585 165.06)",
-          "oklch(61% 0.0585 165.06)",
-          "oklch(72% 0.0585 165.06)",
-          "oklch(84% 0.0585 165.06)",
-          "oklch(95% 0.0585 165.06)"
-        ]
-      },
-      "brass": {
-        "role": "secondary",
-        "displayName": "brass",
-        "tonalRamp": [
-          "oklch(15% 0.0781 84.60)",
-          "oklch(26% 0.0781 84.60)",
-          "oklch(38% 0.0781 84.60)",
-          "oklch(49% 0.0781 84.60)",
-          "oklch(61% 0.0781 84.60)",
-          "oklch(72% 0.0781 84.60)",
-          "oklch(84% 0.0781 84.60)",
-          "oklch(95% 0.0781 84.60)"
         ]
       },
       "cue-ball": {
@@ -450,11 +338,6 @@
         "purpose": "悬停文件名浮层。"
       },
       {
-        "name": "canvas-wood",
-        "value": "color:#0009; blur:20; offsetX:0; offsetY:10",
-        "purpose": "Canvas 木框，非 CSS box-shadow。"
-      },
-      {
         "name": "canvas-ball",
         "value": "color:#02130fb3; blur:5; offsetX:2; offsetY:4",
         "purpose": "Canvas 球接触阴影，非 CSS box-shadow。"
@@ -465,6 +348,11 @@
         "name": "stroke",
         "value": "0.12s; gap *= 1 - stroke_progress ** 1.6",
         "purpose": "球杆前送末端触球；不是 CSS easing。"
+      },
+      {
+        "name": "cue-follow",
+        "value": "70ms; gap = -12 * (1 - cue_follow)",
+        "purpose": "rolling 初段保留前送收势，使用 stroke_origin 固定击球原点。"
       }
     ],
     "breakpoints": [
@@ -481,10 +369,19 @@
         "frontend/table-renderer.js",
         "src-tauri/src/physics.rs",
         "PRODUCT.md",
-        ".impeccable/surfaces/frontend-table-js.md"
+        ".impeccable/surfaces/frontend-table-js.md",
+        "frontend/frame-skin.js",
+        "frontend/assets/table-frame.png"
       ],
       "verification": "source-extracted; native wallpaper build not visually verified",
-      "tonalRamps": "仅供面板展示的合成 OKLCH 色阶，不是源码定义的可用 token；透明 token 的色阶展示其 RGB 基色。"
+      "tonalRamps": "仅供面板展示的合成 OKLCH 色阶，不是源码定义的可用 token；透明 token 的色阶展示其 RGB 基色。",
+      "frameAsset": {
+        "source": "/Users/hassanzhang/Desktop/f77025b5-7692-47d5-b717-871c7e57ef5b.png",
+        "derived": "frontend/assets/table-frame.png",
+        "processing": "built-in image_gen background removal; transparent raster",
+        "mapping": "12 sections from 5×3 grid; middle row center 3 omitted; pocket assemblies isotropic; straight rails stretch",
+        "verification": "source inspection only; native seams/pocket alignment not certified"
+      }
     }
   },
   "components": [
@@ -530,10 +427,10 @@
   ],
   "narrative": {
     "northStar": "桌面上的经典球桌",
-    "overview": "以清晰桌面壁纸、暖木框、绿色橡胶库边、黄铜菱形点和暗皮袋组织台面；没有可用壁纸时才显示绿布。真实文件图标被裁进统一圆球，以球面高光和接触阴影保持可击打的体积感。\n\n界面保持低密度：Canvas 承载球桌与运动，系统字体承担进度、力度和操作说明。本文记录源码已实现的视觉规则；壁纸内容由用户桌面决定，不指定固定色调或图片资产。",
+    "overview": "以清晰桌面壁纸和用户指定的深红木纹边框组织台面；金属包角、金边、菱形点与皮革网兜来自透明边框素材，没有可用壁纸时才显示绿布。真实文件图标被裁进统一圆球，以球面高光和接触阴影保持可击打的体积感。\n\n界面保持低密度：Canvas 承载球桌与运动，系统字体承担进度、力度和操作说明。本文记录源码已实现的视觉规则；壁纸内容由用户桌面决定，不指定壁纸色调；边框身份由用户选定的素材固定。",
     "keyCharacteristics": [
       "桌内外共享同一幅壁纸的完整桌面 cover 坐标，桌内不加模糊或呢面。",
-      "木框、库边、袋口、球面以 Canvas 程序绘制。",
+      "边框采用透明栅格素材分块映射，球面与绿布回退以 Canvas 程序绘制。",
       "后拉锁定方向，前送末端触球，侧栏显示同一力度。"
     ],
     "rules": [
@@ -544,13 +441,13 @@
       },
       {
         "name": "Shared Geometry",
-        "body": "渲染直接消费物理引擎的 bounds、pockets、cushions 与球半径，不为视觉效果另造碰撞边界。",
+        "body": "边框分块映射消费物理引擎的 bounds 与 pocket_radius；物理边袋中心按素材锚点外移，不能把图像外框当成碰撞矩形。",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do 复用物理引擎输出的球半径、库边多边形与六袋位置。",
-      "Do 保持桌内壁纸清晰、圆球裁切和木库材质；壁纸加载失败时回退绿布。",
+      "Do 复用物理引擎输出的球半径与素材映射边界，保持六袋锚点和碰撞中心对齐。",
+      "Do 保持桌内壁纸清晰、圆球裁切及用户指定边框的分块装配；壁纸加载失败时回退绿布。",
       "Do 通过力度百分比、状态文案和焦点轮廓提供操作反馈。"
     ],
     "donts": [
