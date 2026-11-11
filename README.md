@@ -2,14 +2,14 @@
 
 使用真实桌面文件图标玩台球。当前开发版本采用 **Rust + Tauri 2**，提供 Windows Explorer 与 macOS Finder 适配，共用 Rust 物理引擎和 Canvas 界面。
 
-> 当前迁移尚未发布。macOS 已构建并打开试玩台面；完整验收范围与平台限制见 [VALIDATION.md](VALIDATION.md)。原 Python 版本源码仍保留作迁移对照，不参与新应用构建。
+> 当前迁移尚未发布。macOS 已构建并打开真实桌面台面；完整验收范围与平台限制见 [VALIDATION.md](VALIDATION.md)。原 Python 版本源码仍保留作迁移对照，不参与新应用构建。
 
 ## 开发运行
 
 安装 [Rust](https://rustup.rs/)、Node.js LTS，并准备 Tauri 平台依赖：
 
 - **Windows 10/11 x64**：Visual Studio Build Tools（Desktop development with C++、Windows SDK）和 Microsoft Edge WebView2。
-- **macOS**：Xcode Command Line Tools（`xcode-select --install`）。首次读取桌面时，在系统提示中允许本应用控制 Finder；拒绝后可在「系统设置 → 隐私与安全性 → 自动化」调整。使用 `npm run dev` 时，权限可能归属启动应用的终端，请检查该终端下的 Finder 开关。Finder 查询等待最多 30 秒，图标准备等待最多 45 秒；超时后可重试或选择窗口试玩。
+- **macOS**：Xcode Command Line Tools（`xcode-select --install`）。首次读取桌面时，在系统提示中允许本应用控制 Finder；拒绝后可在「系统设置 → 隐私与安全性 → 自动化」调整。使用 `npm run dev` 时，权限可能归属启动应用的终端，请检查该终端下的 Finder 开关。Finder 查询等待最多 30 秒，图标准备等待最多 45 秒；超时后可检查权限并重试。
 
 ```sh
 npm ci
@@ -20,7 +20,7 @@ Windows 也可以双击 `run.cmd`。游戏不再需要 Python、Tk 或 PyInstall
 
 ## 玩法
 
-1. 点击「开始桌面游戏」读取真实桌面图标；点击「窗口试玩」使用明确标注的示例图标，不申请 Finder 权限。
+1. 点击「开始桌面游戏」读取真实桌面图标并打开台面。当前仅保留桌面游戏入口。
 2. 在台面移动鼠标瞄准，按住左键向后拉杆，松手击球。辅助线显示首次碰撞及白球／目标球的后续方向。
 3. 六个袋口均可进球；白球入袋后自动尝试复位，无法复位时点击空处摆球。清台后计时停止。
 4. 用控制面板切换辅助线、重新开始或结束本局。按 `Esc`、全局快捷键 `Ctrl+Alt+X` 或点击「退出」关闭应用。

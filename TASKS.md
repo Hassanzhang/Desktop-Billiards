@@ -28,3 +28,7 @@
 ## 本轮台面素材
 
 - [ ] T-011 / F-005：清晰桌面壁纸与用户指定边框已实现，透明度、六袋锚点／等比映射、Rust／Node 测试、Clippy 和 macOS 构建通过。Mac 锁屏阻止最新皮肤的原生预览；解锁后仍需核对实际接缝、壁纸及进球对齐。实现提交可按 `feat(T-006,T-011): use wallpaper and supplied billiards frame` 检索。
+
+## 桌面启动
+
+- [x] T-012 / F-004、F-006：移除试玩入口及后端分支；Finder 批量读取、64×64 PNG 图标、Rust 暂存数据减少 IPC。自动回归通过，真实桌面 51 图标完整读取一次测量为 1034 ms；原生控制面板单入口和真实台面已验证；未记录精确端到端耗时，边界见 VALIDATION.md。提交按 `perf(T-012): streamline desktop-only startup` 检索。

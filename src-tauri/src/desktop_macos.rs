@@ -1,11 +1,12 @@
 use super::DesktopItem;
 use base64::{engine::general_purpose::STANDARD, Engine};
-use objc2::MainThreadMarker;
+use objc2::{AnyThread, MainThreadMarker};
 use objc2_app_kit::{
-    NSBitmapImageFileType, NSBitmapImageRep, NSNormalWindowLevel, NSWindow,
-    NSWindowCollectionBehavior, NSWorkspace,
+    NSBitmapImageFileType, NSBitmapImageRep, NSCompositingOperation, NSDeviceRGBColorSpace,
+    NSGraphicsContext, NSImage, NSNormalWindowLevel, NSWindow, NSWindowCollectionBehavior,
+    NSWorkspace,
 };
-use objc2_foundation::{NSDictionary, NSString};
+use objc2_foundation::{NSDictionary, NSPoint, NSRect, NSSize, NSString};
 use std::{
     io::Read,
     process::{Command, Output, Stdio},
@@ -42,7 +43,7 @@ fn timed_output(command: &mut Command, timeout: Duration) -> Result<Output, Stri
                     let _ = child.wait();
                     return Err(match result {
                         Err(e) => e.to_string(),
-                        _ => "读取 Finder 桌面超时（30 秒）。请检查是否有待处理的系统权限弹窗；在系统设置 → 隐私与安全性 → 自动化中检查启动本应用的终端或本应用是否获准控制 Finder，然后重试，也可选择窗口试玩。".into(),
+                        _ => "读取 Finder 桌面超时（30 秒）。请检查是否有待处理的系统权限弹窗；在系统设置 → 隐私与安全性 → 自动化中检查启动本应用的终端或本应用是否获准控制 Finder，然后重试。".into(),
                     });
                 }
             }
@@ -70,7 +71,10 @@ pub fn items() -> Result<Vec<DesktopItem>, String> {
             "-e",
             r#"
 const finder = Application('Finder');
-JSON.stringify(finder.desktop.items().map(item => ({ name: item.name(), url: item.url() })));
+const items = finder.desktop.items;
+const names = items.name();
+const urls = items.url();
+JSON.stringify(names.map((name, i) => ({ name, url: urls[i] })));
 "#,
         ]),
         Duration::from_secs(30),
@@ -92,21 +96,42 @@ JSON.stringify(finder.desktop.items().map(item => ({ name: item.name(), url: ite
             .to_file_path()
             .map_err(|_| "Finder 返回了无效文件路径")?;
         let image = workspace.iconForFile(&NSString::from_str(&path.to_string_lossy()));
-        let tiff = image.TIFFRepresentation().ok_or("无法读取桌面图标")?;
-        let rep = NSBitmapImageRep::imageRepWithData(&tiff).ok_or("无法转换桌面图标")?;
-        let png = unsafe {
-            rep.representationUsingType_properties(NSBitmapImageFileType::PNG, &NSDictionary::new())
-        }
-        .ok_or("无法编码桌面图标")?;
+        let png = objc2::rc::autoreleasepool(|_| icon_png(&image))?;
         icons.push(DesktopItem {
             name: row.name,
-            image: format!("data:image/png;base64,{}", STANDARD.encode(png.to_vec())),
+            image: format!("data:image/png;base64,{}", STANDARD.encode(png)),
         });
     }
     if icons.is_empty() {
         return Err("桌面没有可用图标，请先在桌面放置文件后重试。".into());
     }
     Ok(icons)
+}
+
+// Rasterize once at the displayed icon size, instead of encoding every native TIFF representation.
+fn icon_png(image: &NSImage) -> Result<Vec<u8>, String> {
+    let rep = unsafe {
+        NSBitmapImageRep::initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bytesPerRow_bitsPerPixel(
+            NSBitmapImageRep::alloc(), std::ptr::null_mut(), 64, 64, 8, 4, true, false,
+            NSDeviceRGBColorSpace, 0, 0,
+        )
+    }.ok_or("无法创建桌面图标位图")?;
+    let context = NSGraphicsContext::graphicsContextWithBitmapImageRep(&rep)
+        .ok_or("无法创建图标绘图上下文")?;
+    NSGraphicsContext::saveGraphicsState_class();
+    NSGraphicsContext::setCurrentContext(Some(&context));
+    image.drawInRect_fromRect_operation_fraction(
+        NSRect::new(NSPoint::new(0., 0.), NSSize::new(64., 64.)),
+        NSRect::default(),
+        NSCompositingOperation::Copy,
+        1.,
+    );
+    NSGraphicsContext::restoreGraphicsState_class();
+    unsafe {
+        rep.representationUsingType_properties(NSBitmapImageFileType::PNG, &NSDictionary::new())
+    }
+    .map(|png| png.to_vec())
+    .ok_or_else(|| "无法编码桌面图标".into())
 }
 
 pub fn attach(window: &tauri::WebviewWindow) -> Result<(), String> {
@@ -135,6 +160,26 @@ pub fn wallpaper() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "reads real Finder desktop; run explicitly for startup profiling"]
+    fn native_desktop_startup_profile() {
+        let start = Instant::now();
+        let icons = items().unwrap();
+        eprintln!(
+            "desktop_read_ms={} count={} png_base64_bytes={}",
+            start.elapsed().as_millis(),
+            icons.len(),
+            icons.iter().map(|i| i.image.len()).sum::<usize>()
+        );
+        for icon in icons {
+            let bytes = STANDARD
+                .decode(icon.image.strip_prefix("data:image/png;base64,").unwrap())
+                .unwrap();
+            assert_eq!(u32::from_be_bytes(bytes[16..20].try_into().unwrap()), 64);
+            assert_eq!(u32::from_be_bytes(bytes[20..24].try_into().unwrap()), 64);
+        }
+    }
 
     #[test]
     fn finder_process_output_and_timeout() {

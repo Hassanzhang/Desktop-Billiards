@@ -77,3 +77,12 @@
 - 原生证据（改壁纸／素材前）：CUA 读取 51 个真实图标，观察到 1/51 入袋、侧栏力度及幽灵球；用户后续截图显示 4/51 入袋、圆球、木库、送杆与计时。独立复核识别出按下重置微调和触球可见帧问题，已修正并加入回归。
 - 最新皮肤原生预览失败原文：`The Mac is locked and automatic unlock could not unlock it.` 中文说明：Mac 已锁屏，工具无法打开应用继续验收。最新壁纸、素材接缝与进球视觉对齐尚未原生复验，复核状态为 `recapture`，不能记为整体视觉通过。Windows、球体旋转、加塞、八球分边和新犯规未包含在本轮验收中；音效按用户要求取消。
 - 本地 Git 已存在（并行任务创建基线 `db053ad`），本轮在该仓库提交源码、素材、测试和相关文档；未发布版本。
+
+## T-012 · 2026-11-11 · 仅桌面游戏与启动读取优化
+
+- 复现：使用原 JXA `desktop.items().map(item => ({ name: item.name(), url: item.url() }))` 对当前 51 项桌面执行名称／URL 枚举，20 秒仍未完成，测量进程超时终止。改成 `items.name()`、`items.url()` 两次批量查询，一次枚举样本为 3.795 秒。两者均为桌面枚举，不含窗口创建。
+- 完整新读取实机探针：`cargo test --manifest-path src-tauri/Cargo.toml native_desktop_startup_profile -- --ignored --nocapture` 通过；`desktop_read_ms=1034 count=51 png_base64_bytes=313982`。该单次测量包含 Finder 批量查询及 51 个 AppKit PNG 编码，不包含 Tauri 创建窗口、壁纸读取或前端图片解码，不能据此宣称端到端启动仅需 1 秒。探针逐图检查 PNG IHDR 的宽高均为 64。
+- `npm test`：8 项 Rust 自动测试通过，依赖真实系统的探针默认 ignored；3 个 Node 脚本通过。桌面加载回归已改为“权限失败、超时解锁、迟到结果不误开台面、桌面重试成功”，且禁止访问已移除的 demo 控件。
+- `npm run check`、Cargo 格式检查、前端 JS 语法检查、`git diff --check` 通过；`npm run build -- --bundles app` 最新 macOS ARM64 `.app` 构建通过，约 9.51 MiB。
+- 原生 UI：最新控制面板 AX 只有“开始桌面游戏”和“退出”，没有试玩入口。点击开始后短时显示读取反馈，后续确认真实桌面台面、51 图标及 3/51 入袋状态。CUA 首次连接报 `Computer Use server error -10005: timeoutReached`，按完整路径重连后验证成功。工具的重连、取状态等待时间不计作启动性能测量；未记录精确端到端启动耗时。
+- macOS 图标读取与真实入口已验证；首次未授权、拒绝授权及 Windows Explorer 启动性能仍待目标环境复验。没有增加缓存失效策略或后台预读授权行为。

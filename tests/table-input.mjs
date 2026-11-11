@@ -21,7 +21,7 @@ const context = vm.createContext({
   Image: class { set src(_) { queueMicrotask(() => this.onload()); } },
   window: {
     __TAURI__: { core: { invoke: async (command, args) => {
-      if (command === 'initial') return { width: 1000, height: 700, items: [{ name: 'test', image: '' }], demo: true, guide: true };
+      if (command === 'initial') return { width: 1000, height: 700, items: [{ name: 'test', image: '' }], guide: true };
       if (command === 'frame') { inputs.push(args.pointer); return table; }
     } }, event: { listen() {} } },
     addEventListener: (name, callback) => { events[name] = callback; },

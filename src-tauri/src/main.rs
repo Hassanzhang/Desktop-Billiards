@@ -22,17 +22,18 @@ struct Game {
     width: f64,
     height: f64,
     monitor: tauri::Monitor,
-    demo: bool,
 }
 struct Runtime {
     game: Mutex<Option<Game>>,
     guide: AtomicBool,
+    prepared: Mutex<Option<Vec<DesktopItem>>>,
 }
 impl Default for Runtime {
     fn default() -> Self {
         Self {
             game: Mutex::new(None),
             guide: AtomicBool::new(true),
+            prepared: Mutex::new(None),
         }
     }
 }
@@ -42,7 +43,6 @@ struct Summary {
     seconds: u64,
     total: usize,
     pocketed: usize,
-    demo: bool,
 }
 fn summary(game: &Game) -> Summary {
     Summary {
@@ -50,34 +50,39 @@ fn summary(game: &Game) -> Summary {
         seconds: game.table.seconds,
         total: game.items.len(),
         pocketed: game.table.balls.iter().skip(1).filter(|b| b.sunk).count(),
-        demo: game.demo,
     }
 }
 #[tauri::command]
-async fn prepare_desktop(demo: bool) -> Result<Vec<DesktopItem>, String> {
-    if demo {
-        return Ok((1..=15)
-            .map(|i| DesktopItem {
-                name: format!("试玩图标 {i}"),
-                image: String::new(),
-            })
-            .collect());
+async fn prepare_desktop(
+    window: tauri::WebviewWindow,
+    state: State<'_, Runtime>,
+) -> Result<usize, String> {
+    if window.label() != "main" {
+        return Err("只能从控制面板读取桌面".into());
     }
-    tauri::async_runtime::spawn_blocking(desktop::items)
+    *state.prepared.lock().map_err(|e| e.to_string())? = None;
+    let items = tauri::async_runtime::spawn_blocking(desktop::items)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())??;
+    let count = items.len();
+    *state.prepared.lock().map_err(|e| e.to_string())? = Some(items);
+    Ok(count)
 }
 #[tauri::command]
 fn open_game(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
     state: State<Runtime>,
-    items: Vec<DesktopItem>,
-    demo: bool,
 ) -> Result<(), String> {
     if window.label() != "main" {
         return Err("只能从控制面板开始游戏".into());
     }
+    let items = state
+        .prepared
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take()
+        .ok_or("请先读取桌面图标")?;
     if items.is_empty()
         || items.len() > 2000
         || items.iter().any(|i| {
@@ -111,7 +116,6 @@ fn open_game(
         width,
         height,
         monitor,
-        demo,
     });
     drop(guard);
     let result = (|| -> Result<(), String> {
@@ -123,15 +127,13 @@ fn open_game(
         .title("桌面图标台球 · 台面")
         .inner_size(width, height)
         .position(x, y)
-        .decorations(demo)
+        .decorations(false)
         .resizable(false)
-        .skip_taskbar(!demo)
+        .skip_taskbar(true)
         .visible(false)
         .build()
         .map_err(|e| e.to_string())?;
-        if !demo {
-            desktop::attach(&table)?;
-        }
+        desktop::attach(&table)?;
         table.show().map_err(|e| e.to_string())?;
         // Keep the controls reachable above the desktop layer.
         window.set_always_on_top(true).map_err(|e| e.to_string())?;
@@ -150,7 +152,7 @@ fn initial(state: State<Runtime>) -> Result<serde_json::Value, String> {
     let guard = state.game.lock().map_err(|e| e.to_string())?;
     let game = guard.as_ref().ok_or("游戏尚未开始")?;
     Ok(
-        serde_json::json!({"items":game.items,"width":game.width,"height":game.height,"demo":game.demo,"guide":state.guide.load(Ordering::Relaxed),"wallpaper":if game.demo {None} else {desktop::wallpaper()}}),
+        serde_json::json!({"items":game.items,"width":game.width,"height":game.height,"guide":state.guide.load(Ordering::Relaxed),"wallpaper":desktop::wallpaper()}),
     )
 }
 #[derive(serde::Deserialize)]

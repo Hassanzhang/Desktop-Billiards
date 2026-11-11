@@ -97,7 +97,6 @@ const loadImage = src => new Promise((resolve, reject) => {
 try {
   initial = await invoke('initial');
   const background = initial.wallpaper ? await loadImage(initial.wallpaper).catch(() => null) : null;
-  $('demo-label').hidden = !initial.demo;
   const images = await Promise.all(initial.items.map(item => item.image ? loadImage(item.image).catch(() => { throw new Error(`图标加载失败：${item.name}`); }) : null));
   const frameAsset = await loadImage('assets/table-frame.png');
   render = createRenderer(canvas, initial, images, background, frameAsset);
