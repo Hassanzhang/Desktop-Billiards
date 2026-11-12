@@ -230,3 +230,10 @@
 - 依赖检查：EXE 导入系统 DLL 和 `WebView2Loader.dll`；生成的 `installer.nsi` 明确将 Loader DLL 安装到应用目录，并包含 WebView2 Runtime 安装流程。安装包 `dist/Desktop Icon Billiards_0.1.1_x64-setup.exe`（11.61 MiB）；免安装 `dist/DesktopIconBilliards_0.1.1_windows_x64.zip`（12.07 MiB）包含 EXE、Loader DLL 和说明，ZIP CRC 与二进制字节比对通过。免安装包仍需已安装 WebView2 Runtime。
 - SHA-256：macOS DMG `ef2d7a510068e7362481fe78dc600fe883e332e7e80aaf91778c381cddc41b6f`；Windows NSIS `3ed45d43932fcfb607016bb3d32cf01a4ba5e5735dbe6a5e7e9f5a1de2b7cee4`；Windows ZIP `7f73eb1c3f02f632ed1a0a6ad90ad1935302d16dd2c9b657b2e57c7026b5adcd`。另存 `dist/SHA256SUMS.txt` 与 `dist/BUILD-INFO.txt`。
 - 本轮未修改产品代码，使用 T-026 自动回归证据；构建成功不替代原生验收。未启动 Windows 实机或 macOS 桌面游戏，未检查 Windows 安装／Explorer 集成／DPI／退出恢复，未公开发布。
+
+## T-025 · 2026-11-12 · 连杀播报五段式时间轴（未发布）
+
+- 用户给出逐段时间轴：0–0.2 秒白闪＋背景压暗＋轻微震屏；0.2–0.5 秒红黑斜切块自两侧高速冲入＋台球冲击波扩散；0.5–1.5 秒标题自巨幅缩小并回弹、碎片爆开；1.5–2.1 秒标题定格（发光、轻微抖动、粒子飘散）；2.1–2.5 秒文字与图形分向退出、恢复游戏画面。实现为 `frontend/style.css` 中共享一条 2.5 秒时钟的 `announce-*` 关键帧分层：白闪层、压暗层、左右斜切块（clip-path 斜切、进出各走一端）、冲击波层（径向渐变环自中心扩散）、碎片层（18 片固定散布的色块，随机角度由 JS 注入 `--dx/--dy/--rot`）、标题层（`announce-title` 管缩放回弹与退场，`announce-lock` 管定格期的发光与抖动）。台面画面震屏由 `body.announce-active canvas` 同步抖动实现。`prefers-reduced-motion` 下取消白闪／斜切／冲击波／碎片／震屏，仅保留压暗与标题淡入淡出。
+- 视觉验证：`tests/announce-preview.html` 用 Web Animations API 把所有动画精确 seek 到指定时刻并逐拍截图（0.1／0.35／0.6／1.0／1.7／2.3 秒）：0.35 秒见左右红黑斜切块冲入、背景压暗；0.6 秒见标题巨幅砸下；1.7 秒见标题定格、红光与碎片飘散。`?check=1` 自检断言输出 `PASS: five phases, impact, hold, split exit, replay, input passthrough`。
+- 回归：`npm test`（12 项 Rust）、三项 Node 回归、`npm run check`、`cargo fmt --check`、`node --check` 全绿；Rust 本轮未改动。
+- 未覆盖：实机 WebKit 下 filter／clip-path 动画的帧率与观感、2.5 秒动画与台面渲染同帧时的性能，待原生验收。
