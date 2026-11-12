@@ -77,3 +77,7 @@
 ## 连杀播报节奏
 
 - [x] T-026 / F-002：统一五段 2.5 秒播报时间线；白闪在 0.2 秒内结束，0.2～0.5 秒色块冲入／冲击波扩散，标题 0.5 秒开始、约 0.7 秒落定回弹并同步爆出碎片，1.5～2.1 秒锁定尺寸微光震动，2.1～2.5 秒文字斜上退出、色块向外撤离。修复标题动画选择器不匹配；增加减少动态效果替代及可重播／定格／自检预览。Chrome 两尺寸与减少动态模式、全量自动回归通过；原生验收待补。提交按 `feat(T-026): choreograph five-phase kill announcement` 检索。
+
+## 双平台打包
+
+- [x] T-027 / F-001：以产品提交 `41c894a` 构建 macOS arm64 `.app`／DMG 和 Windows x64 GNU EXE／NSIS／免安装 ZIP，集中交付到 dist 并生成 SHA-256。macOS ad-hoc 签名／DMG 只读挂载与包内一致性校验通过；Windows 安装脚本含 WebView2Loader.dll，便携 ZIP CRC／字节检查通过。Windows 交叉构建未签名且未实机运行，原生验收仍属 T-004。提交按 `docs(T-027): record macOS and Windows build artifacts` 检索。

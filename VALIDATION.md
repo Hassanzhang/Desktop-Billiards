@@ -220,3 +220,13 @@
 - `npm test`：12 Rust 测试通过，1 个真实 Finder 性能探针按设计忽略，3 个 Node 回归通过；`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check`、`git diff --check` 通过。
 - Impeccable detector 已运行（exit 2，有视觉告警）：静态隐藏播报图片、裁切屏幕外演出图形属于时间线设计；红黑／米白播报色已补充 DESIGN.md。其余既有界面颜色／字号建议不在本次动效修改范围，不将检测描述为零告警通过。
 - 以上为真实 Chrome 的预览层检查；未启动真实 Finder／Explorer 游戏，未测原生帧率，未重构建应用包。原生窗口操作与系统 WebView 观感仍待验收。
+
+## T-027：macOS 与 Windows 打包（2026-11-12）
+
+- 产品源码：`41c894a`，版本保持 0.1.1；macOS Apple Silicon 构建。补齐 Homebrew `mingw-w64 14.0.0_3`、`makensis 3.13`（安装过程原有 xz／zstd 依赖同步升级）；已有 Rust `x86_64-pc-windows-gnu` target。缓存均保留。
+- macOS 首次普通构建成功，但 `codesign --verify --deep --strict` 报 `code has no resources but signature indicates they must be present`：只有链接器临时签名，未封装资源。使用 `APPLE_SIGNING_IDENTITY=- npm run build -- --bundles app,dmg --ci` 重新生成本地 ad-hoc 签名产物，严格签名验证通过；Apple Events entitlement 保留。未公证、无 Developer ID 签名。
+- macOS：`dist/Desktop Icon Billiards.app`、`dist/Desktop Icon Billiards_0.1.1_aarch64.dmg`（13.57 MiB）。`hdiutil verify` 通过；只读挂载 DMG 后 `codesign --verify --deep --strict` 通过，包内 `.app` 与 dist 副本 `diff -qr` 一致，挂载已卸载。架构为 arm64，不包含 Intel。
+- Windows：`npm run build -- --target x86_64-pc-windows-gnu --bundles nsis --ci` 成功；CLI 提示交叉编译属于实验性功能、跳过安装包签名。`file` 确认业务 EXE 为 PE32+ x86-64 GUI；安装器是标准 PE32 NSIS stub，实际安装目标为 x64。
+- 依赖检查：EXE 导入系统 DLL 和 `WebView2Loader.dll`；生成的 `installer.nsi` 明确将 Loader DLL 安装到应用目录，并包含 WebView2 Runtime 安装流程。安装包 `dist/Desktop Icon Billiards_0.1.1_x64-setup.exe`（11.61 MiB）；免安装 `dist/DesktopIconBilliards_0.1.1_windows_x64.zip`（12.07 MiB）包含 EXE、Loader DLL 和说明，ZIP CRC 与二进制字节比对通过。免安装包仍需已安装 WebView2 Runtime。
+- SHA-256：macOS DMG `ef2d7a510068e7362481fe78dc600fe883e332e7e80aaf91778c381cddc41b6f`；Windows NSIS `3ed45d43932fcfb607016bb3d32cf01a4ba5e5735dbe6a5e7e9f5a1de2b7cee4`；Windows ZIP `7f73eb1c3f02f632ed1a0a6ad90ad1935302d16dd2c9b657b2e57c7026b5adcd`。另存 `dist/SHA256SUMS.txt` 与 `dist/BUILD-INFO.txt`。
+- 本轮未修改产品代码，使用 T-026 自动回归证据；构建成功不替代原生验收。未启动 Windows 实机或 macOS 桌面游戏，未检查 Windows 安装／Explorer 集成／DPI／退出恢复，未公开发布。

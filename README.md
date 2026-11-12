@@ -42,8 +42,17 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --check
 Windows 也可以运行 `pwsh -File build.ps1`；依赖已装好时加 `-SkipDeps`。
 
 - macOS 包：`src-tauri/target/release/bundle/macos/Desktop Icon Billiards.app`，默认当前架构。只构建 `.app`：`npm run build -- --bundles app`。
-- Windows 包：`src-tauri/target/release/bundle/` 内的 MSI / NSIS 安装包；需要 Windows 原生构建工具。与旧版 PyInstaller 单文件 EXE 的分发方式不同。
+- Windows 原生构建包：`src-tauri/target/release/bundle/` 内的 MSI / NSIS 安装包；需要 Windows 原生构建工具。macOS 上也可使用 MinGW 交叉构建 x64 GNU EXE 与 NSIS：`npm run build -- --target x86_64-pc-windows-gnu --bundles nsis --ci`（需安装对应 Rust target、`mingw-w64` 与 `makensis`；交叉构建不替代 Windows 实机验收）。
 - 正式 macOS 分发需签名、公证；当前本地构建不代表已签名发布。Apple Events entitlement 与权限说明已配置。
+
+## 本地打包产物（0.1.1）
+
+当前产品源码 `41c894a` 的包已保存到 `dist/`：
+
+- Windows：运行 `Desktop Icon Billiards_0.1.1_x64-setup.exe` 安装，之后从快捷方式启动。缺少 WebView2 Runtime 时安装器会尝试联网下载。
+- Windows 免安装：完整解压 `DesktopIconBilliards_0.1.1_windows_x64.zip`，运行 `DesktopIconBilliards.exe`，保持 `WebView2Loader.dll` 在同一目录；需要 WebView2 Runtime。
+- macOS Apple Silicon：打开 `Desktop Icon Billiards_0.1.1_aarch64.dmg`，将应用拖入 Applications。仅有本地 ad-hoc 签名，未做 Developer ID 签名／公证；不包含 Intel 架构。
+- 校验文件：`dist/SHA256SUMS.txt`。Windows 包尚未实机验收，两个平台均未公开发布。启动后点击「开始桌面游戏」，桌面需至少 14 个图标。
 
 ## 代码与迁移范围
 
