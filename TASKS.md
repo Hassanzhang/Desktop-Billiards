@@ -81,3 +81,7 @@
 ## 双平台打包
 
 - [x] T-027 / F-001：以产品提交 `41c894a` 构建 macOS arm64 `.app`／DMG 和 Windows x64 GNU EXE／NSIS／免安装 ZIP，集中交付到 dist 并生成 SHA-256。macOS ad-hoc 签名／DMG 只读挂载与包内一致性校验通过；Windows 安装脚本含 WebView2Loader.dll，便携 ZIP CRC／字节检查通过。Windows 交叉构建未签名且未实机运行，原生验收仍属 T-004。提交按 `docs(T-027): record macOS and Windows build artifacts` 检索。
+
+## Windows 台面创建卡死
+
+- [x] T-028 / F-001、F-004：修复在同步 Tauri 命令中创建 WebView2 的已知 Windows 死锁：`open_game` 改为异步命令，保持 UI 消息循环可运行。自动回归与 macOS Clippy／格式检查通过；修正版双平台包重新生成后覆盖 dist，Windows 实机复验仍待用户完成。提交按 `fix(T-028): create game webview from async command` 检索。

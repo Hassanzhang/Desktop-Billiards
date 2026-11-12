@@ -237,3 +237,16 @@
 - 视觉验证：`tests/announce-preview.html` 用 Web Animations API 把所有动画精确 seek 到指定时刻并逐拍截图（0.1／0.35／0.6／1.0／1.7／2.3 秒）：0.35 秒见左右红黑斜切块冲入、背景压暗；0.6 秒见标题巨幅砸下；1.7 秒见标题定格、红光与碎片飘散。`?check=1` 自检断言输出 `PASS: five phases, impact, hold, split exit, replay, input passthrough`。
 - 回归：`npm test`（12 项 Rust）、三项 Node 回归、`npm run check`、`cargo fmt --check`、`node --check` 全绿；Rust 本轮未改动。
 - 未覆盖：实机 WebKit 下 filter／clip-path 动画的帧率与观感、2.5 秒动画与台面渲染同帧时的性能，待原生验收。
+
+## T-028：Windows 读取图标后创建台面卡死（2026-11-12）
+
+- 用户 Windows 实测卡在“已读取图标，正在创建台面”。源码 `open_game` 为同步命令，其中调用 `WebviewWindowBuilder::build`。所用 Tauri 2.12.5 文档明确警告：Windows 在同步 command 或事件回调创建 WebView 会死锁，应使用 async command／独立线程（`WebviewBuilder::new`，wry #583）。该已知缺陷与现象高度吻合；本机无法复现 Windows UI，因此不声称已实机确认唯一原因。
+- 改为 `async fn open_game(..., State<'_, Runtime>)`，使创建发生在异步命令执行器，让原生 UI 消息循环保持可用；创建前释放游戏锁的原有逻辑保留。修复调用的线程上下文，不用前端超时掩盖死锁。
+- `npm test`：12 Rust 测试通过，1 个真实 Finder 探针忽略，3 个 Node 回归通过；`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check` 通过。
+- Windows `npm run build -- --target x86_64-pc-windows-gnu --bundles nsis --ci` 成功；安装包和含 EXE／WebView2Loader.dll 的免安装 ZIP 已覆盖 dist。ZIP CRC 与业务 EXE 字节检查通过。
+- macOS `APPLE_SIGNING_IDENTITY=- npm run build -- --bundles app,dmg --ci` 成功，dist `.app` 和 DMG 同步更新；严格 ad-hoc 签名与 DMG 完整性校验通过。未公证。
+- 修正版 SHA-256：
+- `b970e3af0dc8050ebb6e926d35b771853ceba3a28109e9a7e618f6d2afb85df0  Desktop Icon Billiards_0.1.1_aarch64.dmg`
+- `5b18a63df18d0023150a4dab7d6b3afb0ac9e50386151edfcb21c22e84007144  Desktop Icon Billiards_0.1.1_x64-setup.exe`
+- `e671d9782d0d2f504df94cff5c9e9b88f7249c06edc92746295c4a472c1d5a80  DesktopIconBilliards_0.1.1_windows_x64.zip`
+- Windows 尚待用户结束旧进程后使用新包实机复验；未验证 Explorer 挂接／DPI 与实际窗口启动。构建和模拟回归不等于该卡死已在 Windows 实机验证消失。

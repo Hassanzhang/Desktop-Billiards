@@ -47,7 +47,7 @@ Windows 也可以运行 `pwsh -File build.ps1`；依赖已装好时加 `-SkipDep
 
 ## 本地打包产物（0.1.1）
 
-当前产品源码 `41c894a` 的包已保存到 `dist/`：
+当前修正版包已保存到 `dist/`（包含 T-028 Windows 台面创建死锁修复，具体源码提交见 `dist/BUILD-INFO.txt`）：
 
 - Windows：运行 `Desktop Icon Billiards_0.1.1_x64-setup.exe` 安装，之后从快捷方式启动。缺少 WebView2 Runtime 时安装器会尝试联网下载。
 - Windows 免安装：完整解压 `DesktopIconBilliards_0.1.1_windows_x64.zip`，运行 `DesktopIconBilliards.exe`，保持 `WebView2Loader.dll` 在同一目录；需要 WebView2 Runtime。

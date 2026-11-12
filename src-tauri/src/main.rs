@@ -99,11 +99,13 @@ async fn prepare_desktop(
     *state.prepared.lock().map_err(|e| e.to_string())? = Some(items);
     Ok(count)
 }
+// Creating a WebView2 from a synchronous IPC command deadlocks on Windows.
+// Keep creation on the async command executor so the UI message loop can run.
 #[tauri::command]
-fn open_game(
+async fn open_game(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
-    state: State<Runtime>,
+    state: State<'_, Runtime>,
 ) -> Result<(), String> {
     if window.label() != "main" {
         return Err("只能从控制面板开始游戏".into());
