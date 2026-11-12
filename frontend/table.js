@@ -55,7 +55,11 @@ canvas.addEventListener('wheel', event => {
 }, { passive: false });
 window.addEventListener('contextmenu', event => { event.preventDefault(); cancel(); });
 listen('guide', event => { if (initial) initial.guide = event.payload; });
-listen('restarted', () => { introPending = true; prevSunk = null; });
+listen('restarted', () => {
+  // A restart deals a new random seven: reload items, icons and sprites.
+  introPending = true; prevSunk = null;
+  loadTable().catch(error => { $('table-error').textContent = `${error}\n请在控制面板结束本局后重试。`; });
+});
 $('power').addEventListener('input', event => { selectedPower = Number(event.target.value) / 100; $('power-value').value = `${event.target.value}%`; });
 $('shoot').onclick = () => { pointer.shot = selectedPower; canvas.focus(); };
 
@@ -69,15 +73,18 @@ function updateControls(table) {
   const score = `${table.pocketed} / ${initial.items.length} 入袋 · ${String(Math.floor(table.seconds / 60)).padStart(2, '0')}:${String(table.seconds % 60).padStart(2, '0')}`;
   if (score !== lastScore) { lastScore = score; $('table-score').textContent = score; }
   const hint = table.phase === 'finished' ? '清台完成 · 在控制面板重新开始'
+    : table.phase === 'failed' ? '黑八提前入袋 · 游戏失败 · 在控制面板重新开始'
     : table.phase === 'ball_in_hand' ? '白球入袋 · 点击台面空处摆球'
     : table.phase === 'return_white' ? '白球入袋 · 请点击台面空处摆球'
     : table.phase === 'pull' ? '方向已锁定 · 向后拉杆 · 松手击球 · 右键 / 空格取消'
     : table.phase === 'stroke' || table.phase === 'rolling' ? '图标滚动中…'
+    : table.pocketed === initial.items.length ? '只剩黑八 · 最后打进即获胜 · 移动瞄准 · 按住向后拉杆 · 松手击球'
     : '移动瞄准 · 按住向后拉杆 · 松手击球 · ← → / 滚轮微调';
   if (hint !== lastHint) { lastHint = hint; $('table-hint').textContent = hint; }
   let hover = -1;
   if (table.phase === 'ready' && !renderer?.busy) {
     for (let i = 1; i < table.xs.length; i++) {
+      if (i === initial.black8) continue;
       if (!table.sunk[i] && Math.hypot(pointer.x - table.xs[i], pointer.y - table.ys[i]) < initial.radius) {
         hover = i; break;
       }
@@ -125,11 +132,14 @@ async function frame() {
 const loadImage = src => new Promise((resolve, reject) => {
   const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = src;
 });
-try {
+async function loadTable() {
   initial = await invoke('initial');
   const background = initial.wallpaper ? await loadImage(initial.wallpaper).catch(() => null) : null;
   const images = await Promise.all(initial.items.map(item => item.image ? loadImage(item.image).catch(() => { throw new Error(`图标加载失败：${item.name}`); }) : null));
   const frameAsset = await loadImage('assets/table-frame.png');
   renderer = createRenderer(canvas, initial, images, background, frameAsset);
+}
+try {
+  await loadTable();
   canvas.focus(); frame();
 } catch (error) { $('table-error').textContent = `${error}\n请在控制面板结束本局后重试。`; }

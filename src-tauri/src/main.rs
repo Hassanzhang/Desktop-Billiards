@@ -9,13 +9,15 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Mutex,
     },
-    time::Instant,
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{Emitter, Manager, State};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 struct Game {
     table: Table,
+    /// The full desktop pool kept so every restart deals a fresh random seven.
+    pool: Vec<DesktopItem>,
     items: Vec<DesktopItem>,
     last: Instant,
     started: Instant,
@@ -49,8 +51,32 @@ fn summary(game: &Game) -> Summary {
         phase: game.table.phase,
         seconds: game.table.seconds,
         total: game.items.len(),
-        pocketed: game.table.balls.iter().skip(1).filter(|b| b.sunk).count(),
+        pocketed: game.table.balls[1..game.table.black8]
+            .iter()
+            .filter(|b| b.sunk)
+            .count(),
     }
+}
+/// Shuffle-free reservoir tail pick: seven random desktop icons per game,
+/// seeded from the wall clock so every start deals a different set.
+fn pick_seven(mut items: Vec<DesktopItem>) -> Vec<DesktopItem> {
+    let mut seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() ^ u64::from(d.subsec_nanos()))
+        .unwrap_or(0x2545_F491_4F6C_DD1D)
+        | 1;
+    let mut random = move || {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        seed
+    };
+    let n = items.len();
+    for i in (n - 7..n).rev() {
+        let j = (random() % (u64::try_from(i).unwrap_or(0) + 1)) as usize;
+        items.swap(j, i);
+    }
+    items.split_off(n - 7)
 }
 #[tauri::command]
 async fn prepare_desktop(
@@ -77,20 +103,21 @@ fn open_game(
     if window.label() != "main" {
         return Err("只能从控制面板开始游戏".into());
     }
-    let items = state
+    let prepared = state
         .prepared
         .lock()
         .map_err(|e| e.to_string())?
         .take()
         .ok_or("请先读取桌面图标")?;
-    if items.is_empty()
-        || items.len() > 2000
-        || items.iter().any(|i| {
-            i.name.len() > 4096
-                || i.image.len() > 8_000_000
-                || (!i.image.is_empty() && !i.image.starts_with("data:image/png;base64,"))
-        })
-    {
+    if prepared.len() < 7 {
+        return Err("桌面图标不足 7 个，无法开始游戏".into());
+    }
+    let items = pick_seven(prepared.clone());
+    if items.iter().any(|i| {
+        i.name.len() > 4096
+            || i.image.len() > 8_000_000
+            || (!i.image.is_empty() && !i.image.starts_with("data:image/png;base64,"))
+    }) {
         return Err("桌面图标数据无效".into());
     }
     let mut guard = state.game.lock().map_err(|e| e.to_string())?;
@@ -110,6 +137,7 @@ fn open_game(
     let now = Instant::now();
     *guard = Some(Game {
         table: Table::new(width, height, items.len()),
+        pool: prepared,
         items,
         last: now,
         started: now,
@@ -165,6 +193,7 @@ fn initial(state: State<Runtime>) -> Result<serde_json::Value, String> {
         "rail_depth": table.rail_depth,
         "max_pull": table.max_pull,
         "radius": table.balls[0].radius,
+        "black8": table.black8,
     }))
 }
 #[derive(serde::Deserialize)]
@@ -242,7 +271,7 @@ fn frame(
         }
     }
     game.table.step(dt);
-    if game.table.phase != Phase::Finished {
+    if game.table.phase != Phase::Finished && game.table.phase != Phase::Failed {
         game.table.seconds = game.started.elapsed().as_secs();
     }
     if state.guide.load(Ordering::Relaxed) {
@@ -267,6 +296,8 @@ fn restart(app: tauri::AppHandle, state: State<Runtime>) -> Result<(), String> {
     let mut guard = state.game.lock().map_err(|e| e.to_string())?;
     let mut restarted = false;
     if let Some(game) = guard.as_mut() {
+        // Every restart deals a new random seven from the desktop pool.
+        game.items = pick_seven(game.pool.clone());
         game.table = Table::new(game.width, game.height, game.items.len());
         game.started = Instant::now();
         game.last = game.started;

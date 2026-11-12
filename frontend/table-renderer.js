@@ -10,6 +10,7 @@ const SINK_SECONDS = .55;
 export function createRenderer(canvas, initial, images, background, frameAsset) {
   const ctx = canvas.getContext('2d');
   const { width, height, radius } = initial;
+  const black8 = initial.black8 ?? images.length + 1;
   const geom = { bounds: initial.bounds, pocket_radius: initial.pocket_radius, rail_depth: initial.rail_depth };
   let surface;
   let baked = null;
@@ -75,10 +76,14 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
   function drawBallFace(g, index, image, x, y) {
     g.save();
     g.shadowColor = '#02130fb3'; g.shadowBlur = 5; g.shadowOffsetY = 4; g.shadowOffsetX = 2;
-    circleOn(g, x, y, radius, index === 0 ? '#f4f0df' : ballColors[(index - 1) % 8 + 1]);
+    circleOn(g, x, y, radius, index === 0 ? '#f4f0df' : index === black8 ? '#171a1d' : ballColors[(index - 1) % 8 + 1]);
     g.shadowColor = 'transparent';
     g.beginPath(); g.arc(x, y, radius, 0, TAU); g.clip();
-    if (index > 0) {
+    if (index === black8) {
+      circleOn(g, x, y, radius * .46, '#f5eedc');
+      g.fillStyle = '#242b29'; g.font = `600 ${Math.max(8, radius * .67)}px system-ui`;
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('8', x, y + .5);
+    } else if (index > 0) {
       if (image) {
         const ratio = radius * 2 / Math.max(image.naturalWidth, image.naturalHeight);
         g.drawImage(image, x - image.naturalWidth * ratio / 2, y - image.naturalHeight * ratio / 2, image.naturalWidth * ratio, image.naturalHeight * ratio);
@@ -104,7 +109,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     // 12px padding covers the baked drop shadow (blur 5, offsets 2/4).
     const size = Math.ceil((radius + 12) * 2);
     const sprites = [];
-    for (let i = 0; i <= images.length; i++) {
+    for (let i = 0; i <= images.length + 1; i++) {
       const sprite = document.createElement('canvas');
       sprite.width = sprite.height = Math.ceil(size * scale);
       const g = sprite.getContext('2d');

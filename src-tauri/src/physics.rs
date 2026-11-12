@@ -38,6 +38,8 @@ pub enum Phase {
     Rolling,
     ReturnWhite,
     BallInHand,
+    /// The black eight dropped before every icon ball was cleared.
+    Failed,
     Finished,
 }
 #[derive(Clone, Serialize)]
@@ -70,6 +72,8 @@ pub struct Table {
     pub cushions: Vec<[[f64; 2]; 4]>,
     pub rail_depth: f64,
     pub max_pull: f64,
+    /// Index of the black eight ball; icon balls are `1..black8`.
+    pub black8: usize,
     pub stroke_progress: f64,
     pub cue_follow: f64,
     pub stroke_origin: [f64; 2],
@@ -86,6 +90,8 @@ pub struct Table {
     pull_origin: Option<[f64; 2]>,
 }
 impl Table {
+    /// `count` is the number of icon balls; the white and the black eight
+    /// (racked at the center of the deepest column) join them.
     pub fn new(width: f64, height: f64, count: usize) -> Self {
         let [l, t, r, b] = [
             (width * 0.09).max(112.),
@@ -95,22 +101,35 @@ impl Table {
         ];
         let w = r - l;
         let h = b - t;
-        let columns = ((((8 * count + 1) as f64).sqrt() - 1.) / 2.).ceil().max(1.) as usize;
+        let rack = count + 1;
+        let columns = ((((8 * rack + 1) as f64).sqrt() - 1.) / 2.).ceil().max(1.) as usize;
         let pitch = 50_f64
             .min(w * 0.45 / (columns as f64 + 0.5))
             .min(h * 0.79 / columns as f64);
         let radius = pitch * 0.46;
-        let mut balls = vec![Ball::new(l + w * 0.2, (t + b) / 2., radius)];
+        // Rack positions first so the black eight can claim the middle of the
+        // deepest column before the icon balls are laid out.
+        let mut positions = Vec::with_capacity(rack);
+        let (mut center, mut deepest, mut rows) = (0usize, 0usize, 0usize);
         for col in 0..columns {
-            let depth = (col + 1).min(count + 1 - balls.len());
+            let depth = (col + 1).min(rack - positions.len());
             for i in 0..depth {
-                balls.push(Ball::new(
+                positions.push([
                     l + w * 0.52 + col as f64 * pitch * 0.84,
                     (t + b) / 2. + (i as f64 - (depth - 1) as f64 / 2.) * pitch * 0.95,
-                    radius,
-                ));
+                ]);
             }
+            if depth > deepest {
+                deepest = depth;
+                center = rows + (depth - 1) / 2;
+            }
+            rows += depth;
         }
+        let mut balls = vec![Ball::new(l + w * 0.2, (t + b) / 2., radius)];
+        for pos in positions.iter() {
+            balls.push(Ball::new(pos[0], pos[1], radius));
+        }
+        let black8 = center + 1;
         let pocket_radius = (radius * 1.65).clamp(12., 38.);
         let rail_depth = (h * 0.032).clamp(10., 24.);
         let corner = pocket_radius * 1.35;
@@ -138,6 +157,7 @@ impl Table {
             cushions,
             rail_depth,
             max_pull: (h * 0.24).clamp(80., 180.),
+            black8,
             stroke_progress: 0.,
             cue_follow: 0.,
             stroke_origin: [0., 0.],
@@ -169,7 +189,7 @@ impl Table {
             stroke_origin: [self.stroke_origin[0] as f32, self.stroke_origin[1] as f32],
             aim: [self.aim[0] as f32, self.aim[1] as f32],
             seconds: self.seconds,
-            pocketed: self.balls.iter().skip(1).filter(|b| b.sunk).count(),
+            pocketed: self.balls[1..self.black8].iter().filter(|b| b.sunk).count(),
             ghost: self.ghost.map(|g| [g[0] as f32, g[1] as f32]),
             guide: self.guide.clone(),
             xs: self.balls.iter().map(|b| b.x as f32).collect(),
@@ -276,7 +296,7 @@ impl Table {
     }
     pub fn step(&mut self, dt: f64) {
         let mut dt = dt.clamp(0., 0.05);
-        if self.phase == Phase::Finished {
+        if matches!(self.phase, Phase::Finished | Phase::Failed) {
             return;
         }
         self.cue_follow = (self.cue_follow - dt / 0.07).max(0.);
@@ -376,7 +396,22 @@ impl Table {
                 }
             }
         }
-        let cleared = self.balls.iter().skip(1).all(|b| b.sunk);
+        // The black eight must be the last ball down: dropping it while any
+        // icon ball is still on the table ends the game immediately.
+        let black_sunk = self.balls[self.black8].sunk;
+        let icons_left = self.balls[1..self.black8]
+            .iter()
+            .filter(|b| !b.sunk)
+            .count();
+        if black_sunk && icons_left > 0 {
+            for ball in &mut self.balls {
+                ball.vx = 0.;
+                ball.vy = 0.;
+            }
+            self.phase = Phase::Failed;
+            return;
+        }
+        let cleared = icons_left == 0 && black_sunk;
         if cleared
             || self
                 .balls
@@ -658,6 +693,49 @@ fn collide(a: &mut Ball, b: &mut Ball) {
 mod tests {
     use super::*;
     #[test]
+    fn black_eight_must_be_pocketed_last() {
+        let mut t = Table::new(1600., 1000., 2);
+        assert_eq!(t.balls.len(), 4);
+        let black = t.black8;
+        assert!(
+            black > 0 && black < t.balls.len(),
+            "The black eight must sit between the icons and the end"
+        );
+        // Early drop ends the game at once and freezes the clock.
+        t.phase = Phase::Rolling;
+        t.balls[black].x = t.pockets[0][0];
+        t.balls[black].y = t.pockets[0][1];
+        t.balls[black].vx = 120.;
+        t.balls[black].vy = 120.;
+        t.step(0.01);
+        assert_eq!(t.phase, Phase::Failed);
+        assert!(t.balls[black].sunk);
+        let elapsed = t.elapsed;
+        t.step(0.05);
+        assert_eq!(t.elapsed, elapsed);
+        assert!(!t.shoot(0.5), "A failed game must not accept new shots");
+        // Clearing every icon first, then the black eight, wins.
+        let mut t = Table::new(1600., 1000., 2);
+        for ball in t.balls[1..t.black8].iter_mut() {
+            ball.sunk = true;
+        }
+        t.phase = Phase::Rolling;
+        t.balls[t.black8].x = t.pockets[0][0];
+        t.balls[t.black8].y = t.pockets[0][1];
+        t.balls[t.black8].vx = 120.;
+        t.balls[t.black8].vy = 120.;
+        t.step(0.01);
+        assert_eq!(t.phase, Phase::Finished);
+        // Icons down but the black eight still out: the game keeps going.
+        let mut t = Table::new(1600., 1000., 2);
+        for ball in t.balls[1..t.black8].iter_mut() {
+            ball.sunk = true;
+        }
+        t.phase = Phase::Rolling;
+        t.step(0.05);
+        assert_eq!(t.phase, Phase::Ready);
+    }
+    #[test]
     fn pull_is_a_phase() {
         let mut t = Table::new(1600., 1000., 2);
         let (x, y) = (t.balls[0].x + 150., t.balls[0].y);
@@ -780,6 +858,10 @@ mod tests {
             t.balls[i].x = t.balls[0].x + 250. + (i - 1) as f64 * (t.balls[1].radius * 2. + 8.);
             t.balls[i].y = t.balls[0].y;
         }
+        // Park the black eight away from the shot line; this test exercises
+        // the icon-ball chain, not the endgame rules.
+        t.balls[t.black8].x = t.bounds[2] - 220.;
+        t.balls[t.black8].y = t.bounds[1] + 160.;
         t.aim = [1., 0.];
         assert!(t.shoot(0.9));
         assert!(!t.shoot(1.));
@@ -869,7 +951,11 @@ mod tests {
     fn crowded_rack_stays_inside_and_guide_reflects() {
         for count in [1, 61, 300] {
             let mut t = Table::new(1600., 1000., count);
-            assert_eq!(t.balls.len(), count + 1);
+            assert_eq!(
+                t.balls.len(),
+                count + 2,
+                "White plus icons plus black eight"
+            );
             t.shoot(1.);
             for _ in 0..100 {
                 t.step(0.016);

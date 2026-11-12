@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(Serialize, serde::Deserialize)]
+#[derive(Serialize, serde::Deserialize, Clone)]
 pub struct DesktopItem {
     pub name: String,
     pub image: String,

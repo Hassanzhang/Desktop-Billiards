@@ -112,3 +112,9 @@
 - 用户要求白球入袋后不自动摆回。`step` 的 ReturnWhite 分支移除 fallback 自动摆位循环，0.8s 停顿后仅进入 `BallInHand`，白球保持沉袋直至玩家点击台面空处（`place_white` 校验不变）。前端两阶段提示统一为“点击台面空处摆球”，README 与 DESIGN.md 同步。
 - `npm test`：10 项 Rust 测试通过（原 `scratch_returns_and_finished_clock_freezes` 改为 `scratch_pauses_then_hands_ball_to_player`，断言停顿后停在 BallInHand、白球仍沉袋、需真实点击才复位）；Node 三项回归、`npm run check`、`cargo fmt --check` 通过。
 - 未覆盖：等待→摆球的实际点击体验待原生验收（沿用 T-014 边界）。
+
+## T-015 · 2026-11-12 · 黑八规则与随机发球（未发布）
+
+- 用户规则：每局从桌面随机抽 7 个图标作为目标球，黑 8 固定在球阵最深列中央；先清完 7 个图标球，最后打进黑 8 获胜；黑 8 提前落袋立即判负。实现：`open_game` 校验池 ≥7 后 `pick_seven`（时钟种子 xorshift Fisher–Yates）抽 7，池保留在 `Game.pool`，`restart` 重抽并通过 `restarted` 让台面重拉 `initial`／图标素材；`Table::new` 以 `rack = count + 1` 布阵并让黑 8 占据最深列中央（`Table.black8`）；`step` 中黑 8 落袋且图标未清完 → `Phase::Failed`（清零速度、计时冻结、拒绝新击球）；图标全清后黑 8 落袋 → `Finished`。快照/摘要的 `pocketed` 只计图标球；黑 8 前端专用渲染（黑面＋米白数字 8），文件名浮层跳过黑 8。
+- `npm test`：10 项 Rust 测试（新增 `black_eight_must_be_pocketed_last`：提前落袋判负冻结、清完后落袋获胜、只剩黑八时维持 Ready）与 3 个 Node 回归通过；`npm run check`（Clippy `-D warnings`）、`cargo fmt --check`、`node --check` 三个前端文件通过。`chain_shot` 测试将黑 8 移出击球线以保持链条语义。
+- 未覆盖：随机发球的视觉随机性、黑 8 渲染与失败提示、不足 7 个图标的真实桌面错误路径均待原生验收（沿用 T-014/T-009 边界）。

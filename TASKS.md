@@ -14,6 +14,8 @@
 
 - [x] T-014 / F-002、F-005：拉杆并入状态机（`Phase::Pull`，快照移除 `pulling` 字段）；台面新增开局／重开图标飞入动画、入袋缩小幽灵加粒子环、拉杆力度弧；击球按钮补 hover／active；空闲时前端跳过每帧 IPC，约 0.9s 唤醒刷新计时。`npm test`、`npm run check`、`cargo fmt --check` 通过；动效与功耗收益待原生视觉与帧剖面验收（T-009 边界）。
 
+- [x] T-015 / F-002：黑八规则。`pick_seven` 每局从桌面池随机抽 7 个图标（时钟种子 xorshift，池保留于 `Game.pool` 供重开重抽）；黑 8 渲染为黑色数字球并占据球阵最深列中央（`Table.black8`）；先清图标球再进黑 8 获胜，黑 8 提前落袋进入 `Phase::Failed` 并冻结计时；重开经 `restarted` 事件让台面重拉素材并重放动画。新增 `black_eight_must_be_pocketed_last` 测试；`npm test`、`npm run check`、`cargo fmt --check` 通过；实机发球随机性与失败提示待原生验收。
+
 ## 待验收
 
 - [ ] T-004 / F-001～F-004：完整跨平台原生操作、Finder 权限、Windows 安装包、DPI 与进程退出验收。macOS 控制面板和试玩台面已打开；其余平台／操作证据与阻塞见 [VALIDATION.md](VALIDATION.md)。
