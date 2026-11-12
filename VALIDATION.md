@@ -167,3 +167,10 @@
 - 视觉验收：`tests/ball-preview.html` 经无头 Chrome（`--headless=new --screenshot`，1560×600）产出三球截图：白球连续光泽；Word 球蓝色铺满、W 清晰锐利；文档球横线笔直、边缘压缩弯曲。批量应用与三球共用同一 `drawBallFace` 代码路径，无需额外工作。
 - `node --check` ×2、`tests/table-input.mjs`、`tests/frame-skin.mjs`、`tests/desktop-loading.mjs`、`npm test`（10 Rust）、`npm run check`、`cargo fmt --check` 通过；Rust 无改动。
 - 未覆盖：实机小尺寸（radius≈14px）下图标可辨识度、烘焙耗时（16 球逐像素映射）在真实桌面的帧影响、matcap 在原生 WebKit 的合成一致性，待原生验收。
+
+
+## T-020 · 2026-11-12 · 启动面板背景与美化（未发布）
+
+- 使用用户原图 `frontend/assets/launcher-background.png`，标题居中、辅助线按钮靠右；暖金主按钮及文字、深色半透明统计区，移除底部退出快捷键与技术版本文案。退出按钮与快捷键行为保留。
+- Chrome headless + CDP，模拟 `window.__TAURI__` IPC，在 460×248 CSS px（模拟 460×280 原生窗口扣除标题栏）、DPR 2 截图复核：背景正常、无底部小字、无默认滚动条，标题不再与左上灯具重叠。启动调用、辅助线开关、运行中统计、权限失败提示均通过。
+- `node tests/desktop-loading.mjs`、`node tests/table-input.mjs`、`node tests/frame-skin.mjs`、`node --check frontend/main.js` 通过。Impeccable detector 无发现（首次背景改动后运行）。原生 Tauri 桌面窗口未做本轮实机视觉验收；浏览器使用模拟 IPC，不证明真实桌面权限与启动流程。
