@@ -1,8 +1,7 @@
 # 桌面图标台球 · Desktop Icon Billiards
 
 使用真实桌面文件图标玩台球。当前开发版本采用 **Rust + Tauri 2**，提供 Windows Explorer 与 macOS Finder 适配，共用 Rust 物理引擎和 Canvas 界面。
-
-> 当前迁移尚未发布。macOS 已构建并打开真实桌面台面；完整验收范围与平台限制见 [VALIDATION.md](VALIDATION.md)。原 Python 版本已从当前工作树移除，可通过 Git 历史查阅。
+![img.png](img.png)
 
 ## 开发运行
 
