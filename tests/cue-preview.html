@@ -12,7 +12,7 @@ try {
   const canvas = document.querySelector('canvas');
   const results = [];
   for (const height of [400, 900]) {
-    const initial = {width:1000, height, radius:23, bounds:[40,40,960,height-40], pocket_radius:30, rail_depth:20, max_pull:120, black8:1, guide:false};
+    const initial = {width:1000, height, radius:23, bounds:[40,40,960,height-40], pocket_radius:30, max_pull:120, black8:1, guide:false};
     const renderer = createRenderer(canvas, initial, [], null, frame, cue, matcap);
     for (const angle of [0, Math.PI / 4, Math.PI / 2, Math.PI, -Math.PI / 2]) {
       const table = {phase:'rolling',xs:[650,900],ys:[height/2,height-80],sunk:[false,true],aim:[Math.cos(angle),Math.sin(angle)],charge:0,cue_follow:0,stroke_progress:0,stroke_origin:[650,height/2],guide:[],pocketed:0,seconds:0};

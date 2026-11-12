@@ -70,7 +70,6 @@ pub struct Table {
     pub pockets: [[f64; 2]; 6],
     pub pocket_radius: f64,
     pub cushions: Vec<[[f64; 2]; 4]>,
-    pub rail_depth: f64,
     pub max_pull: f64,
     /// Index of the black eight ball; icon balls are `1..black8`.
     pub black8: usize,
@@ -163,7 +162,6 @@ impl Table {
             ],
             pocket_radius,
             cushions,
-            rail_depth,
             max_pull: (h * 0.24).clamp(80., 180.),
             black8,
             stroke_progress: 0.,

@@ -2,7 +2,7 @@
 
 ## Rust + Tauri 2（未发布）
 
-- `src-tauri/src/physics.rs`：平台无关物理模拟。沿用原版球阵、阻力、碰撞冲量、反弹系数、击球延时、自动摆白球、计时和辅助线预测。
+- `src-tauri/src/physics.rs`：平台无关物理模拟。沿用原版球阵、阻力、碰撞冲量、反弹系数、击球延时、玩家摆白球、计时和辅助线预测。
 - `src-tauri/src/main.rs`：游戏生命周期、IPC、单实例、全局退出快捷键。物理计算在 Rust 内执行，前端每次只请求一帧，避免并发请求堆积。
 - `desktop_macos.rs`：通过系统 `osascript` 的 JavaScript for Automation 批量读取 Finder 桌面项目，查询超过 30 秒时终止并回收 `osascript`，并行读取标准输出与错误以避免管道填满；再用 AppKit NSWorkspace 提取 PNG 图标；原生台面窗口使用 `NSNormalWindowLevel - 1`：覆盖 Finder 图标及桌面小组件，保持普通应用窗口在其上方；不修改系统小组件开关。
 - `desktop_windows.rs`：通过 Shell COM 的 IShellWindows → IShellBrowser → IFolderView → IShellItemArray 读取实际 Explorer 项目和缩略图；Tauri 台面作为 SHELLDLL_DefView 子窗口。
@@ -18,7 +18,7 @@ macOS 需要 Finder 自动化权限，正式分发还需要开发者签名、公
 
 ## 迁移差异
 
-保留旧 Python 工程作对照，不参与新入口。新台面读取本地 PNG/JPEG 壁纸，桌内外按同一 full-desktop cover 坐标绘制，桌内不模糊、不覆盖绿布；不可读取或动态壁纸回退为呢面。静态木框、库边、袋口和背景缓存到离屏 Canvas。暂未复刻图标飞入和入袋粒子；旧版检查更新、赞赏入口暂未迁移。旧 `update.json` 仍属于 Python EXE，不能用于 Tauri 自动更新。版本保持 0.1.1，本轮尚未发布。
+旧 Python 产品及其测试、依赖、打包与更新链路已移除，迁移对照通过 Git 历史查阅。新台面读取本地 PNG/JPEG 壁纸，桌内外按同一 full-desktop cover 坐标绘制，桌内不模糊、不覆盖绿布；不可读取或动态壁纸回退为呢面。静态木框、库边、袋口和背景缓存到离屏 Canvas。图标飞入和入袋粒子已在 Canvas 渲染层实现；旧版检查更新、赞赏入口未迁移。版本保持 0.1.1，本轮尚未发布。
 
 ## 拉杆与台面（T-006，未发布）
 
@@ -34,6 +34,8 @@ Cargo 开发／测试配置为 `debug = 0`、`incremental = false`，发布配�
 ## 指定边框素材（T-011，未发布）
 
 `frontend/assets/table-frame.png` 由用户图片通过内置 image_gen 抠透明得到，外侧和台面区域透明、六个皮革网兜保留。提示词和来源见 `.impeccable/assets/table-frame.prompt.md`，PNG 内嵌同一提示词。`frontend/frame-skin.js` 按 1536×1024 的六个袋口锚点绘制 12 块：袋口／包角等比，只有直木条伸展，避免宽屏拉扁洞口。桌内外共享壁纸坐标，桌内不模糊、不覆盖绿布，无壁纸时回退呢面。中袋向外偏移 `14 / 55 * pocket_radius`，匹配素材中袋位置。
+
+`initial` 仅下发前端需要的静态几何；袋口坐标留在 Rust 物理引擎内，库边厚度仅在构建碰撞几何时计算，不再保存或下发。应用图标原始素材保留为 `assets/icon-source.png`，避免进入 `frontendDist`。
 
 ## 桌面启动优化（T-012，未发布）
 

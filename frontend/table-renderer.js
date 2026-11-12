@@ -10,7 +10,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
   const ctx = canvas.getContext('2d');
   const { width, height, radius } = initial;
   const black8 = initial.black8 ?? images.length + 1;
-  const geom = { bounds: initial.bounds, pocket_radius: initial.pocket_radius, rail_depth: initial.rail_depth };
+  const geom = { bounds: initial.bounds, pocket_radius: initial.pocket_radius };
   let surface;
   let baked = null;
   let layer = null;
@@ -319,7 +319,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     ctx.drawImage(layer, 0, 0, width, height);
   }
   // Icons launch from scattered desktop spots and glide into the rack.
-  function drawIntro(table, now) {
+  function drawIntro(now) {
     const elapsed = (now - intro.start) / 1000;
     let done = true;
     for (let i = 0; i < intro.targets.length; i++) {
@@ -370,7 +370,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     const now = performance.now();
     if (intro) {
       prev = null;
-      drawIntro(table, now);
+      drawIntro(now);
       return;
     }
     if (initial.guide) {

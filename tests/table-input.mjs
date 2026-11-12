@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const elements = new Map();
 const element = id => {
   if (!elements.has(id)) elements.set(id, {
-    value: '35', style: {}, classList: { toggle() {} }, events: {},
+    value: '35', style: { setProperty() {} }, appendChild() {}, classList: { toggle() {} }, events: {},
     addEventListener(name, callback) { this.events[name] = callback; },
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 700 }),
     setPointerCapture() {}, hasPointerCapture: () => true, releasePointerCapture() {}, focus() {},
@@ -17,11 +17,11 @@ const events = {};
 let nextFrame;
 let table = { phase: 'ready', charge: 0, seconds: 0, pocketed: 0, ghost: null, guide: [], aim: [1, 0], stroke_origin: [0, 0], stroke_progress: 0, cue_follow: 0, xs: [100, 500], ys: [100, 350], sunk: [false, false] };
 const context = vm.createContext({
-  document: { getElementById: element },
+  document: { getElementById: element, createElement: () => element(Symbol('node')) },
   Image: class { set src(_) { queueMicrotask(() => this.onload()); } },
   window: {
     __TAURI__: { core: { invoke: async (command, args) => {
-      if (command === 'initial') return { width: 1000, height: 700, items: [{ name: 'test', image: '' }], guide: true, bounds: [90, 77, 940, 623], pockets: [], pocket_radius: 30, rail_depth: 20, max_pull: 160, radius: 20 };
+      if (command === 'initial') return { width: 1000, height: 700, items: [{ name: 'test', image: '' }], guide: true, bounds: [90, 77, 940, 623], pocket_radius: 30, max_pull: 160, radius: 20 };
       if (command === 'frame') { inputs.push(args.pointer); return table; }
     } }, event: { listen() {} } },
     addEventListener: (name, callback) => { events[name] = callback; },

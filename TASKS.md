@@ -31,7 +31,7 @@
 
 - [x] T-008 / F-001：保留可运行应用后清理 5.4 GiB 构建产物和 Node 依赖；关闭增量缓存与调试符号；新增可检索 Feature Map 和项目本地验证 skill。并行构建仍会重新生成缓存，不能将一次清理描述为永久磁盘上限。
 - [ ] T-009 / F-002、F-005：补原生帧循环分段测量，再验证静止场景的 IPC 调度优化、紧凑契约、时钟一致性及渲染缓存。独立模拟微基准已记录，尚无用户桌面的原生 IPC / Canvas 剖面。
-- [ ] T-010 / F-001～F-005：待并行编辑同步后，按功能重组目录、删除已迁移 Python 产品及打包入口、同步测试名称和手势文档。旧版代码已保存在 Git 基线中，不作为长期并列产品。
+- [ ] T-010 / F-001～F-005：已在 T-025 删除旧 Python 产品、测试及打包链路；按功能重组目录仍待实施，当前继续沿用 Rust／前端边界，不作为本次清理范围。
 
 ## 本轮台面素材
 
@@ -69,3 +69,7 @@
 
 - [x] T-023 / F-002：连杀播报。后端按杆统计连续进球（`Table.streak`／`first_blood`／`announce`）：一血只在开局第一次进球播报一次；连进两杆起播报 `02_Double_Kill`…`05_Penta_Kill`（五杆封顶）；中断（空杆或白球落袋）清零，之后必须重新连进两杆才再播报，单杆静默。结算那一杆通过 `announce` 事件发往台面窗口（`window.emit`，不受前端空闲跳帧影响）。前端新增全屏横幅覆盖层：暗角压暗＋横幅自 0.35 倍旋转弹入＋红光溢出，2.4 秒淡出，素材 `frontend/assets/01_First_Blood.png`…`05_Penta_Kill.png` 后台预取；新增 `tests/announce-preview.html` 冻结动画中段便于截图比对。
 - [x] T-024 / F-002：修正清台判定。球阵按列推送、黑 8 位于最深列中央，其后仍有图标球（14 球局 black8=13，球 14、15 是图标），此前 `icons_left`／快照 `pocketed`／面板统计只数 `balls[1..black8]`——还剩 2 个图标球时打进黑 8 即误判清台、进度卡在 12/14。改为统计除白球与黑 8 外的全部球；新增 `win_requires_every_icon_ball` 回归，并修正两个编码旧行为的既有测试（`black_eight_must_be_pocketed_last`、`scratch_pauses_then_hands_ball_to_player`）。
+
+## 无用代码与文件清理
+
+- [x] T-025 / F-001、F-002、F-005：删除旧 Python 链路 30 个文件及无引用截图 2 个；原始应用图标移到 `assets/icon-source.png`；移除未消费的 `initial.pockets`／`rail_depth` 字段、Rust 冗余厚度成员、飞入绘制的闲置参数及被覆盖的台面背景色。保留缓存、回归预览页面及图标生成工具；补齐输入测试的 DOM 创建桩。验证见 VALIDATION.md；提交按 `chore(T-025): remove unused legacy files and code` 检索。

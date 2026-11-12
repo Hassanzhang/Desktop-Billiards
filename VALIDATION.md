@@ -201,3 +201,13 @@
 - 清台判定修正：球阵按列推送，黑 8 位于最深列中央（14 球局 black8=13），其后球 14、15 仍是图标球；此前 `icons_left`、快照 `pocketed` 与面板统计都只数 `balls[1..black8]`，导致还剩 2 个图标球时打进黑 8 即判清台、进度卡在 12/14。改为统计除白球与黑 8 外的全部球。既有测试 `black_eight_must_be_pocketed_last`、`scratch_pauses_then_hands_ball_to_player` 原先编码了旧行为，已按"清完所有图标"更新。
 - 回归：Rust 12 项通过（含新增 `kill_streak_announcements`、`win_requires_every_icon_ball`）、Node 3 项通过、`npm run check`、`cargo fmt --check`、`node --check` 全绿。视觉：`tests/announce-preview.html` 冻结动画中段经无头 Chrome 截图确认横幅铺满桌面、暗角与光晕正常。
 - 未覆盖：实机连杀播报的事件时序（前后端 IPC 延迟下的节奏）、横幅在高分屏的缩放观感、玩家中途开新局的播报重置，待原生验收。
+
+## T-025：无用代码与文件清理（2026-11-12）
+
+- 删除当前 Tauri 入口与构建不引用的旧 Python 产品、测试、依赖、打包入口、更新配置／文档共 30 个文件，以及无仓库引用的旧截图 2 个。迁移对照留在 Git 历史；保留 LICENSE 与原作者致谢。
+- `frontend/assets/icon.png` 按字节移动为 `assets/icon-source.png`，SHA-256 与移动前 Git 文件一致；原生打包 PNG／ICO 路径不变。保留图标生成工具及三个视觉回归页面。
+- 清理 `initial` 中未被消费的袋口坐标与库边厚度，移除 Rust 冗余厚度成员、渲染器闲置参数和被覆盖的 CSS 背景色；物理袋口和构建库边几何仍保留。
+- 本次工作区已有播报／面板修改；为运行输入回归，补齐测试桩 `document.createElement`、`style.setProperty` 与 `appendChild`，未修改其产品交互。
+- macOS 本地 `npm test`：12 项 Rust 测试通过，1 项真实 Finder 性能探针按设计忽略；桌面加载、台面输入、木框映射 3 项 Node 回归通过。`npm run check`（Clippy 全目标）、`cargo fmt --manifest-path src-tauri/Cargo.toml --check`、`node --check frontend/table-renderer.js`、`git diff --check` 均通过。
+- 当前说明文档链接与前端字面量素材路径检查通过。`src-tauri/target/`、`node_modules/`、已有 dist 应用及其余缓存均未删除。
+- 未重新构建安装包，未执行浏览器像素回归、原生桌面操作或 Windows 编译／验收；这次清理不构成这些验收已完成的证据。

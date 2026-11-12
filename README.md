@@ -2,7 +2,7 @@
 
 使用真实桌面文件图标玩台球。当前开发版本采用 **Rust + Tauri 2**，提供 Windows Explorer 与 macOS Finder 适配，共用 Rust 物理引擎和 Canvas 界面。
 
-> 当前迁移尚未发布。macOS 已构建并打开真实桌面台面；完整验收范围与平台限制见 [VALIDATION.md](VALIDATION.md)。原 Python 版本源码仍保留作迁移对照，不参与新应用构建。
+> 当前迁移尚未发布。macOS 已构建并打开真实桌面台面；完整验收范围与平台限制见 [VALIDATION.md](VALIDATION.md)。原 Python 版本已从当前工作树移除，可通过 Git 历史查阅。
 
 ## 开发运行
 
@@ -53,7 +53,7 @@ Windows 也可以运行 `pwsh -File build.ps1`；依赖已装好时加 `-SkipDep
 - [TASKS.md](TASKS.md)：任务和验收状态。
 - [VALIDATION.md](VALIDATION.md)：实际验证证据。
 
-原 `app.pyw`、`dib/`、Python 依赖、测试及 `build-python-legacy.ps1` 仍在基线提交 `db053ad` 中，待调用检查后从当前树移除。旧版下载可在 [上游发布页](https://github.com/liuxiaogang-com/desktop-icon-billiards/releases) 查找；旧 `update.json` 和 [docs/UPDATE.md](docs/UPDATE.md) 仍属于 Python Windows EXE，不是 Rust 版更新源。
+旧 Python 产品、测试、依赖、打包入口及更新清单已移除，迁移对照可通过 Git 历史（基线提交 `db053ad`）查阅。旧版下载可在 [上游发布页](https://github.com/liuxiaogang-com/desktop-icon-billiards/releases) 查找。应用图标原始素材保留在 `assets/icon-source.png`，不随前端资源打包；`tools/make_icon.py` 可从当前 PNG 生成 ICO（需要 Pillow）。
 
 当前应用不截屏、不采集音频、不主动请求网络；只读取桌面项目名并通过系统接口提取图标。没有自动更新下载行为。
 
@@ -68,7 +68,7 @@ Windows 也可以运行 `pwsh -File build.ps1`；依赖已装好时加 `-SkipDep
 
 ## 磁盘占用
 
-本轮已将 `.app` 保存到 `dist/Desktop Icon Billiards.app`，校验文件一致后清理 Rust `target` 与可重新安装的 `node_modules`。源码加应用约 14 MB（不含 Git 历史）。后续运行前先 `npm ci`。
+可运行应用保存在 `dist/Desktop Icon Billiards.app`。构建缓存位于 `src-tauri/target/`，Node 依赖位于 `node_modules/`；本轮清理未删除这些缓存与依赖。缺少 Node 依赖时运行 `npm ci`。
 
 Cargo 开发／测试配置关闭调试符号和增量缓存，发布配置剥离符号。依赖仍需编译，后续构建缓存仍会增长，这些设置不能保证 Rust 编译目录始终只有几 MB。保留应用后可运行 `cargo clean --manifest-path src-tauri/Cargo.toml`。
 
