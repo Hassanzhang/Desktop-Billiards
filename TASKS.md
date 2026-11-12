@@ -85,3 +85,7 @@
 ## Windows 台面创建卡死
 
 - [x] T-028 / F-001、F-004：修复在同步 Tauri 命令中创建 WebView2 的已知 Windows 死锁：`open_game` 改为异步命令，保持 UI 消息循环可运行。自动回归与 macOS Clippy／格式检查通过；修正版双平台包重新生成后覆盖 dist，Windows 实机复验仍待用户完成。提交按 `fix(T-028): create game webview from async command` 检索。
+
+## 平台窗口线程回归
+
+- [x] T-029 / F-001、F-004：修正 T-028 将 macOS AppKit 设置移到后台线程的回归；用平台条件命令属性保留 Windows 异步调度和 macOS 主线程调度，避免两个平台的线程约束互相冲突。全量自动回归、Clippy／格式检查、双平台重新打包通过；macOS 真实启动后已看到完整球桌、14 图标、黑八、壁纸与递增计时，没有主线程错误。Windows 原生复验仍待用户完成。提交按 `fix(T-029): dispatch game creation per platform` 检索。

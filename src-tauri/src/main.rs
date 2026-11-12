@@ -99,10 +99,11 @@ async fn prepare_desktop(
     *state.prepared.lock().map_err(|e| e.to_string())? = Some(items);
     Ok(count)
 }
-// Creating a WebView2 from a synchronous IPC command deadlocks on Windows.
-// Keep creation on the async command executor so the UI message loop can run.
-#[tauri::command]
-async fn open_game(
+// Windows WebView2 creation needs the async executor to avoid a UI deadlock.
+// macOS AppKit attachment must stay on the main thread.
+#[cfg_attr(windows, tauri::command(async))]
+#[cfg_attr(not(windows), tauri::command)]
+fn open_game(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
     state: State<'_, Runtime>,

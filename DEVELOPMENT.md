@@ -47,6 +47,6 @@ Finder 项目名称和 URL 各一次批量查询，替代逐项目跨进程调�
 
 `announce` 事件复用既有 PNG，前端通过移除／恢复 `show`、`announce-active` 重启整段 CSS 动画。所有层共用 2.5 秒时间线，碎片在 0.7 秒标题落定时同步爆发，取消独立延迟；1.5～2.1 秒标题尺寸锁定，2.1 秒后文字与两侧色块分向退出。`prefers-reduced-motion: reduce` 下仅保留标题／遮罩淡入淡出，关闭白闪、震屏和空间运动。`tests/announce-preview.html` 默认播放，支持重播按钮、`?t=1.6` 定格、`?check=1` 浏览器计算样式行为自检。
 
-## Windows 窗口创建线程（T-028）
+## 平台窗口创建线程（T-028、T-029）
 
-`open_game` 必须保持 `async` Tauri 命令：WebView2 在同步 IPC 命令／UI 事件回调中创建会死锁（Tauri 2.12.5 `WebviewBuilder::new` 已知问题，关联 wry #583）。使用异步命令执行器创建台面，让原生 UI 消息循环继续处理创建请求；不能简单改回同步命令。`game` 互斥锁仍在构建台面之前释放。
+`open_game` 的调度按平台区分：Windows 使用 `#[tauri::command(async)]` 在异步执行器中调用，避免同步 IPC 创建 WebView2 的死锁（Tauri 2.12.5 已知问题，wry #583）；macOS 使用普通同步 Tauri 命令，让 AppKit 的窗口层级与 Spaces 设置留在主线程。函数体共用，不能将两平台一起改成 `async fn`。`game` 互斥锁仍在构建台面之前释放。

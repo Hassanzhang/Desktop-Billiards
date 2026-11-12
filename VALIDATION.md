@@ -250,3 +250,14 @@
 - `5b18a63df18d0023150a4dab7d6b3afb0ac9e50386151edfcb21c22e84007144  Desktop Icon Billiards_0.1.1_x64-setup.exe`
 - `e671d9782d0d2f504df94cff5c9e9b88f7249c06edc92746295c4a472c1d5a80  DesktopIconBilliards_0.1.1_windows_x64.zip`
 - Windows 尚待用户结束旧进程后使用新包实机复验；未验证 Explorer 挂接／DPI 与实际窗口启动。构建和模拟回归不等于该卡死已在 Windows 实机验证消失。
+
+## T-029：macOS 主线程回归（2026-11-12）
+
+- 错误原文：`桌面窗口必须在主线程创建`。来源是 `desktop_macos.rs::attach` 的 MainThreadMarker 检查。T-028 全平台 `async fn open_game` 使 macOS 原生层级设置在后台执行；现改为 Windows `#[tauri::command(async)]`，其余平台普通 command，复用同一函数体。未删除 AppKit 主线程保护。
+- `npm test`：12 Rust 测试通过、1 个真实 Finder 探针忽略，3 个 Node 回归通过；`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check` 通过。Windows GNU NSIS 与 macOS ad-hoc APP／DMG 重新构建成功，dist 全部更新。签名严格校验、DMG 完整性和 Windows ZIP CRC 校验通过。
+- 真实 macOS 原生检查：通过 CUA 启动 `src-tauri/target/release/bundle/macos/Desktop Icon Billiards.app`，点击“开始桌面游戏”；点击后工具曾报截图尺寸 `(0.0, 0.0)`，再次读取原生 AX 与截图已确认窗口为“桌面图标台球 · 台面”，页面 `tauri://localhost/table.html`，完整球桌、真实图标／壁纸和黑八可见，进度 `0 / 14 入袋 · 00:21`，没有主线程错误。尝试 Esc 退出时 CUA 报 Computer Use 未激活，未确认退出，本轮未声称完成退出验收。
+- Windows 保持异步命令执行器创建 WebView2，交叉构建通过；尚未 Windows 实机复验。macOS 包仅 Apple Silicon、ad-hoc 签名未公证。
+- 最新 SHA-256（旧记录为各轮历史包，不代表当前 dist）：
+- `b961977c6150f6fc52e839d0864378792c78267f00d7b4d886d8fb3a7075fe1a  Desktop Icon Billiards_0.1.1_aarch64.dmg`
+- `f821f73ab6adf9c0187743e8e15ccfd2d772dc88f4b08c35798240e145d3c0b1  Desktop Icon Billiards_0.1.1_x64-setup.exe`
+- `f300857571f081de43d06dbf584ad2b0a889efcc2d77f3a182be1c6beb891a11  DesktopIconBilliards_0.1.1_windows_x64.zip`
