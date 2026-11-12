@@ -27,7 +27,7 @@ try {
     const table={phase:'rolling',xs:[160,380,600,820,1040],ys:[200,200,200,200,200],sunk:[true,true,true,true,true],aim:[1,0],charge:0,cue_follow:0,stroke_progress:0,stroke_origin:[0,0],guide:[],pocketed:0,seconds:0};
     renderer.draw(table);
     const g=canvas.getContext('2d'), blank=g.getImageData(0,0,canvas.width,canvas.height);
-    table.sunk.fill(false);renderer.draw(table);
+    table.sunk=table.sunk.map(()=>false);renderer.draw(table);
     const actual=g.getImageData(0,0,canvas.width,canvas.height);
     const ref=document.createElement('canvas');ref.width=canvas.width;ref.height=canvas.height;
     const rg=ref.getContext('2d'),scale=window.devicePixelRatio||1;
@@ -40,6 +40,9 @@ try {
     const expected=rg.getImageData(0,0,ref.width,ref.height);
     let samples=0,maxDiff=0;
     for(let p=0;p<expected.data.length;p+=4) if(expected.data[p+3]===255){
+      // Compare uniform opaque interiors, avoiding filter-dependent edge pixels.
+      const neighbors=[p-4,p+4,p-ref.width*4,p+ref.width*4];
+      if(neighbors.some(q=>[0,1,2,3].some(c=>expected.data[q+c]!==expected.data[p+c])))continue;
       samples++;for(let c=0;c<3;c++) maxDiff=Math.max(maxDiff,Math.abs(actual.data[p+c]-expected.data[p+c]));
     }
     if(samples<100||maxDiff>2)throw new Error(`原图颜色／轮廓被改变: radius=${radius}, diff=${maxDiff}`);

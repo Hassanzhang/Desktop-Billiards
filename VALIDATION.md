@@ -179,3 +179,10 @@
 
 - 用户提供的 `frontend/assets/icon.png`（1254×1254，黑 8＋白球＋球杆＋木金边框）替换应用图标：`sips` 重采样 1024×1024 覆盖 `assets/desktop-icon-billiards.png`；`assets/desktop-icon-billiards.ico` 由 Python 标准库 PNG 解码＋盒滤波缩放重建（16/24/32/48/64/128 BMP 条目＋256 PNG 压缩条目，共 269KB），`sips` 解包 256 条目渲染确认内容正确。`tauri.conf.json` 引用路径不变。
 - macOS `.app` 重新打包（`npm run build -- --bundles app`）以嵌入新图标；Finder／Dock 实际显示效果待原生确认（macOS 图标缓存可能需要重启 Dock 或重新挂载）。
+
+## T-021 · 2026-11-12 · 原始图标显示（未发布）
+
+- 用户确定图标保留原始比例、轮廓和透明背景，仅有淡接触阴影。删除 cover 裁切／8% 过扫、逐像素球面变形、圆形裁切、底色和图标材质覆盖，改为原图最大边 contain 至物理直径。白球、黑八、缺图编号后备继续使用已有 matcap 与高光；碰撞、瞄准与悬停物理半径未修改，图标读取仍为现有 64×64，本轮未扩大读取尺寸。
+- `tests/ball-preview.html` 使用真实 renderer 和模拟状态：非方形透明孔洞图、带完整方角的 Word 图、带透明留白文档，分别以 23/48px 半径、DPR 1/2 在本机 Chrome headless 运行。对照直接 contain 绘制的参考，检查不透明均匀区域 RGB 差 ≤2、透明孔洞和上侧留白显示原台面；两组全部 PASS。像素边缘因浏览器滤波不参与严格色差比较，完整方角与轮廓通过截图／不透明区域检查。测试以新快照数组触发真实图层缓存更新，未改产品缓存契约。
+- `node --check frontend/table-renderer.js`、`npm test`（10 项 Rust、3 项 Node 通过，真实 Finder 性能测试沿用忽略）、`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check` 通过。首次 Rust 检查曾被工作区应用图标 `is not RGBA` 阻断，工作区后续图标修正后重新运行通过；本轮未改应用图标。
+- Impeccable detector 无阻断项，仅对测试页面继承文字色报 advisory；测试页已显式设置浅色文字。未执行 Tauri 原生桌面操作／Windows 验收或原生性能测量；64×64 原图在大幅放大时仍有分辨率上限。
