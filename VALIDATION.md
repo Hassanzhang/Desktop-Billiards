@@ -159,3 +159,11 @@
 - 浏览器：`python3 -m http.server 8765 --bind 127.0.0.1`；本机 Google Chrome headless 打开 `/tests/cue-preview.html`（`--virtual-time-budget=5000 --window-size=1000,1000 --dump-dom`，分别 DPR 1 与 `--force-device-scale-factor=2`）。400/900px 高度 × 5 个角度全部通过：前段可见粗细 ≥5px，杆外 35px 处无杂色／矩形光照，pull/stroke 绘制无异常。截图确认枫木、握把、环饰与杆头方向；使用模拟球桌状态与真实素材，不冒充原生操作验收。测试页面可重复运行，无新增项目依赖。
 - Impeccable detector：无阻断项；对测试页继承文字色报一条 advisory，浏览器实测使用已设定的浅色文字，并非实际黑字。
 - 未覆盖：Tauri 原生桌面窗口中的实际拉杆手势、取消、重开、跨平台与不同壁纸视觉验收；不声称已测量原生帧率或功耗。测试用本地 HTTP 服务验证后关闭。
+
+## T-019 · 2026-11-12 · 球面材质重构与三球视觉回归（未发布）
+
+- 用户诉求：伪 3D 球不合格（短圆柱、横向色带、厚重边框、图标平面化、光照不一致）；图标应铺满球面、有酚醛质感、不要五颜六色；黑 8 不变；先做白球／红色图标球／蓝色 Word 图标球三球截图对比，通过后再批量应用。
+- 迭代过程：(1) 12 条 sin 竖条仅横向压缩 → 短圆柱感与横向色带（已删）；(2) matcap 以 multiply 叠加 → 整体压暗（此前已改 overlay）；(3) 三角网格同心方形→圆盘映射 → 高压缩区接缝波纹（红球纸形呈波浪）；(4) 全半球角包裹（cap 90°）→ 中心放大 1.57×、纹理边缘绕球缘成 S 波浪、对角拉伸花瓣边——用户反馈"图标变形太厉害"；(5) 最终：不透明包围盒 cover 裁切＋8% 过扫铺满，逐像素**轻微逐轴球面变形**（平面与角映射各半、指数 0.9，中心≈1:1、直线保持直线、边缘压缩），`ball-matcap.png` overlay 接入渲染（对齐 504/512）＋小锐镜面高光；彩色球色谱删除，图标球统一石色底 `#a89e8d`，白球 `#f7f4ea`，黑 8 设计不变。
+- 视觉验收：`tests/ball-preview.html` 经无头 Chrome（`--headless=new --screenshot`，1560×600）产出三球截图：白球连续光泽；Word 球蓝色铺满、W 清晰锐利；文档球横线笔直、边缘压缩弯曲。批量应用与三球共用同一 `drawBallFace` 代码路径，无需额外工作。
+- `node --check` ×2、`tests/table-input.mjs`、`tests/frame-skin.mjs`、`tests/desktop-loading.mjs`、`npm test`（10 Rust）、`npm run check`、`cargo fmt --check` 通过；Rust 无改动。
+- 未覆盖：实机小尺寸（radius≈14px）下图标可辨识度、烘焙耗时（16 球逐像素映射）在真实桌面的帧影响、matcap 在原生 WebKit 的合成一致性，待原生验收。

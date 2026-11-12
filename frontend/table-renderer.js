@@ -1,6 +1,5 @@
 import { drawFrameSkin } from './frame-skin.js';
 const TAU = Math.PI * 2;
-const ballColors = ['#e7b42a', '#2166ae', '#b52e32', '#6b408b', '#df762b', '#24765a', '#8c3039', '#22282b'];
 // Intro fly-in pacing mirrors the legacy Python overlay: staggered per row,
 // one easing curve per ball, arcing sideways off the flight path.
 const INTRO_SECONDS = .8;
@@ -66,70 +65,141 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     }
     drawFrameSkin(ctx, frameAsset, geom);
   }
-  // Each ball is baked once into a sprite: clean circle, spherized icon,
-  // matcap shading and specular are pre-rendered, so a frame only blits
-  // `drawImage` per ball. No shadow is baked — felt shadows are drawn
-  // separately so stacked balls never read as two layered stickers.
-  function drawBallFace(g, index, image, x, y) {
-    g.save();
-    circleOn(g, x, y, radius, index === 0 ? '#f6f3e8' : index === black8 ? '#14171a' : ballColors[(index - 1) % 8]);
-    g.beginPath(); g.arc(x, y, radius, 0, TAU); g.clip();
-    if (index === black8) {
-      circleOn(g, x, y, radius * .46, '#f5eedc');
-      g.fillStyle = '#242b29'; g.font = `600 ${Math.max(8, radius * .67)}px system-ui`;
-      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('8', x, y + .5);
-    } else if (index > 0) {
-      if (image) {
-        // Slight spherical compression: contain-fit the icon into the inner
-        // disc, then lay it down in vertical strips warped by a sine so the
-        // edges pinch toward the rim. A ring of ball color stays visible.
-        const inset = radius * .8;
-        const side = Math.ceil(inset * 2);
-        const tex = document.createElement('canvas');
-        tex.width = tex.height = side;
-        const tg = tex.getContext('2d');
-        const fit = side / Math.max(image.naturalWidth, image.naturalHeight);
-        tg.drawImage(image, (side - image.naturalWidth * fit) / 2, (side - image.naturalHeight * fit) / 2, image.naturalWidth * fit, image.naturalHeight * fit);
-        const strips = 12;
-        for (let k = 0; k < strips; k++) {
-          const u0 = k / strips, u1 = (k + 1) / strips;
-          const dx0 = Math.sin((u0 - .5) * Math.PI) * inset;
-          const dx1 = Math.sin((u1 - .5) * Math.PI) * inset;
-          g.drawImage(tex, u0 * side, 0, side / strips, side, x + dx0, y - inset, dx1 - dx0, inset * 2);
+  // Caches an icon's opaque bounding box on the image element, then renders
+  // the icon cover-fit into a `side`-squared texture: the opaque area fills
+  // the square with an 8% overscan so rounded corners run past the print rim
+  // and the artwork covers the whole face.
+  function iconTexture(image, side) {
+    if (!image.__bbox) {
+      const w = image.naturalWidth, h = image.naturalHeight;
+      const scan = document.createElement('canvas');
+      scan.width = w; scan.height = h;
+      const sg = scan.getContext('2d');
+      sg.drawImage(image, 0, 0);
+      const data = sg.getImageData(0, 0, w, h).data;
+      const box = { x0: 0, y0: 0, x1: w - 1, y1: h - 1, w, h };
+      let found = false;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (data[(y * w + x) * 4 + 3] > 16) {
+          if (!found) { box.x0 = box.x1 = x; box.y0 = box.y1 = y; found = true; }
+          else {
+            if (x < box.x0) box.x0 = x;
+            if (x > box.x1) box.x1 = x;
+            if (y < box.y0) box.y0 = y;
+            if (y > box.y1) box.y1 = y;
+          }
         }
-        // Melt the icon disc edge into the ball color so it reads curved.
-        const melt = g.createRadialGradient(x, y, inset * .84, x, y, inset);
-        melt.addColorStop(0, 'rgba(0,0,0,0)');
-        melt.addColorStop(1, `${ballColors[(index - 1) % 8]}66`);
-        circleOn(g, x, y, inset, melt);
-      } else {
-        if (index > 8) {
-          g.fillStyle = '#eee8d8'; g.fillRect(x - radius, y - radius, radius * 2, radius * .42);
-          g.fillRect(x - radius, y + radius * .58, radius * 2, radius * .42);
+      }
+      image.__bbox = found ? box : null;
+    }
+    const tex = document.createElement('canvas');
+    tex.width = tex.height = side;
+    const texCtx = tex.getContext('2d');
+    texCtx.imageSmoothingQuality = 'high';
+    const box = image.__bbox;
+    if (box) {
+      const bw = box.x1 - box.x0 + 1, bh = box.y1 - box.y0 + 1;
+      const fit = side * 1.08 / Math.min(bw, bh);
+      texCtx.drawImage(image, box.x0, box.y0, bw, bh, (side - bw * fit) / 2, (side - bh * fit) / 2, bw * fit, bh * fit);
+    } else {
+      texCtx.drawImage(image, 0, 0, side, side);
+    }
+    return texCtx.getImageData(0, 0, side, side).data;
+  }
+  // Maps a square icon texture across the ball face, computed per pixel:
+  // screen offset -> mild per-axis spherical warp -> bilinear texture
+  // sample. The warp is smooth with no seams; straight lines stay straight
+  // and the rim compresses, so the icon reads as printed on the sphere
+  // without the heavy distortion of a full angular wrap.
+  function spherifyPrint(print, image, printR) {
+    const side = print.width;
+    const ss = side / (printR * 2); // supersample factor
+    const pg = print.getContext('2d');
+    const src = iconTexture(image, side);
+    const out = pg.createImageData(side, side);
+    const dst = out.data;
+    const half = side / 2;
+    const last = side - 1;
+    // Mild per-axis spherical warp: halfway between a flat decal and the
+    // full angular map, softened by an exponent. The center stays close to
+    // 1:1 so icons keep their shape, straight lines stay straight (no rim
+    // wrapping), and compression grows toward the rim for curvature.
+    const warp = s => {
+      const flat = s;
+      const a = Math.abs(s);
+      const angular = Math.sign(s) * Math.pow(2 / Math.PI * Math.asin(Math.min(1, a)), .9);
+      return .5 * flat + .5 * angular;
+    };
+    for (let y = 0; y < side; y++) {
+      const oy = (y + .5 - half) / (radius * ss);
+      const v = warp(oy);
+      const fy = Math.max(0, Math.min(last - .001, ((v + 1) / 2) * side - .5));
+      const y0 = fy | 0, y1 = Math.min(last, y0 + 1), ay = fy - y0;
+      const i0 = y0 * side * 4, i1 = y1 * side * 4;
+      for (let x = 0; x < side; x++) {
+        const ox = (x + .5 - half) / (radius * ss);
+        const u = warp(ox);
+        const o = (y * side + x) * 4;
+        const fx = Math.max(0, Math.min(last - .001, ((u + 1) / 2) * side - .5));
+        const x0 = fx | 0, x1 = Math.min(last, x0 + 1), ax = fx - x0;
+        const i00 = i0 + x0 * 4, i10 = i0 + x1 * 4;
+        const i01 = i1 + x0 * 4, i11 = i1 + x1 * 4;
+        for (let ch = 0; ch < 4; ch++) {
+          const top = src[i00 + ch] * (1 - ax) + src[i10 + ch] * ax;
+          const bot = src[i01 + ch] * (1 - ax) + src[i11 + ch] * ax;
+          dst[o + ch] = top * (1 - ay) + bot * ay;
         }
-        circleOn(g, x, y, radius * .46, '#f5eedc');
-        g.fillStyle = '#242b29'; g.font = `600 ${Math.max(8, radius * .67)}px system-ui`;
-        g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(index), x, y + .5);
       }
     }
-    // Phenolic look: the matcap rides in `overlay`, whose neutral gray keeps
-    // midtones untouched while its bright zone lifts and dark edge shades —
-    // a plain multiply would drag every base color toward gray. A fixed
-    // top-left specular sits on top. Every ball shares the same light
-    // direction; nothing here rotates with rolling.
+    pg.putImageData(out, 0, 0);
+    // Feather only the outer 8% so the print edge anti-aliases into the ball.
+    pg.globalCompositeOperation = 'destination-in';
+    const feather = pg.createRadialGradient(half, half, half * .92, half, half, half);
+    feather.addColorStop(0, 'rgba(0,0,0,1)');
+    feather.addColorStop(1, 'rgba(0,0,0,0)');
+    pg.fillStyle = feather;
+    pg.fillRect(0, 0, side, side);
+    pg.globalCompositeOperation = 'source-over';
+  }
+  // One shared phenolic material for every ball: clean base, then continuous
+  // spherical lighting — an offset diffuse pool from the top-left light
+  // through a soft bottom-right terminator, one compact sharp specular, and
+  // a faint clear-coat rim. Icon balls print their icon across the whole
+  // face; only the black eight keeps its own dark patch design.
+  function drawBallFace(g, index, image, x, y) {
+    g.save();
+    g.beginPath(); g.arc(x, y, radius, 0, TAU); g.clip();
+    circleOn(g, x, y, radius, index === 0 ? '#f7f4ea' : index === black8 ? '#14171a' : '#a89e8d');
+    if (image) {
+      // Full-face print: the icon covers the entire visible hemisphere.
+      const print = document.createElement('canvas');
+      print.width = print.height = Math.ceil(radius * 4);
+      spherifyPrint(print, image, radius);
+      g.drawImage(print, x - radius, y - radius, radius * 2, radius * 2);
+    } else if (index > 0) {
+      // The printed number patch, shared by the black eight and any icon
+      // whose image failed to load.
+      circleOn(g, x, y, radius * .48, '#f5eedc');
+      g.fillStyle = '#242b29'; g.font = `600 ${Math.max(8, radius * .6)}px system-ui`;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(index === black8 ? '8' : String(index), x, y + .5);
+    }
+    // Phenolic material: the matcap rides in `overlay` over the print —
+    // its neutral gray keeps icon colors intact while its photographic
+    // gradient supplies the continuous top-left light, the soft terminator
+    // and the fresnel edge, aligned to the ball's true diameter in the
+    // image (504 of 512). A compact specular on top sells the gloss. Every
+    // ball — white, icon or black eight — shares this exact lighting.
     const mat = radius * 2 * 512 / 504;
     g.globalCompositeOperation = 'overlay';
     g.drawImage(matcapAsset, x - mat / 2, y - mat / 2, mat, mat);
     g.globalCompositeOperation = 'source-over';
-    const spec = g.createRadialGradient(x - radius * .34, y - radius * .38, 0, x - radius * .34, y - radius * .38, radius * .5);
-    spec.addColorStop(0, '#ffffffd9');
-    spec.addColorStop(.35, '#ffffff47');
-    spec.addColorStop(1, '#ffffff00');
+    const lx = x - radius * .42, ly = y - radius * .48;
+    const spec = g.createRadialGradient(lx, ly, 0, lx, ly, radius * .3);
+    spec.addColorStop(0, 'rgba(255,255,255,.72)');
+    spec.addColorStop(.4, 'rgba(255,255,255,.2)');
+    spec.addColorStop(1, 'rgba(255,255,255,0)');
     circleOn(g, x, y, radius, spec);
-    const rim = g.createRadialGradient(x, y, radius * .8, x, y, radius);
-    rim.addColorStop(0, 'rgba(4,14,11,0)');
-    rim.addColorStop(1, 'rgba(4,14,11,0.2)');
-    circleOn(g, x, y, radius, rim);
     g.restore();
   }
   // The felt shadow lives with the balls layer, not the sprite: an offset
