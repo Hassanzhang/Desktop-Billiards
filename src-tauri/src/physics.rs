@@ -31,6 +31,8 @@ impl Ball {
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
     Ready,
+    /// Aiming direction is locked while the pointer pulls back; the only
+    /// transitions are cancel (Ready) and release (Stroke).
     Pull,
     Stroke,
     Rolling,
@@ -284,15 +286,9 @@ impl Table {
             Phase::ReturnWhite => {
                 self.wait += dt;
                 if self.wait >= 0.8 {
+                    // Hand control to the player: the white stays pocketed
+                    // until they click an empty spot (ball in hand).
                     self.phase = Phase::BallInHand;
-                    let [l, t, r, b] = self.bounds;
-                    'outer: for fx in [0.2, 0.31, 0.42, 0.54, 0.66, 0.78] {
-                        for fy in [0.5, 0.31, 0.69, 0.19, 0.81] {
-                            if self.place_white(l + (r - l) * fx, t + (b - t) * fy) {
-                                break 'outer;
-                            }
-                        }
-                    }
                 }
                 return;
             }
@@ -798,7 +794,7 @@ mod tests {
         assert_eq!(t.phase, Phase::Ready);
     }
     #[test]
-    fn scratch_returns_and_finished_clock_freezes() {
+    fn scratch_pauses_then_hands_ball_to_player() {
         let mut t = Table::new(1600., 1000., 2);
         t.phase = Phase::Rolling;
         t.balls[0].x = t.pockets[0][0];
@@ -808,6 +804,18 @@ mod tests {
         for _ in 0..20 {
             t.step(0.05);
         }
+        assert_eq!(t.phase, Phase::BallInHand);
+        assert!(
+            t.balls[0].sunk,
+            "The white must stay pocketed until the player places it"
+        );
+        t.step(0.05);
+        assert_eq!(
+            t.phase,
+            Phase::BallInHand,
+            "Placement must wait for a real click"
+        );
+        assert!(t.place_white(400., 400.));
         assert_eq!(t.phase, Phase::Ready);
         assert!(!t.balls[0].sunk);
         t.phase = Phase::Rolling;

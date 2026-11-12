@@ -27,7 +27,7 @@ const context = vm.createContext({
     addEventListener: (name, callback) => { events[name] = callback; },
   },
   requestAnimationFrame: callback => { nextFrame = callback; },
-  createRenderer: () => () => {},
+  createRenderer: () => ({ draw() {}, playIntro() {}, sink() {}, busy: false }),
 });
 const source = readFileSync(new URL('../frontend/table.js', import.meta.url), 'utf8').replace(/^import .*\n/, '');
 await vm.runInContext(`(async () => { ${source} })()`, context);
@@ -41,15 +41,16 @@ await nextFrame();
 assert.equal(JSON.stringify(inputs.at(-1).press), '[600,350]');
 assert.equal(inputs.at(-1).x, 450);
 assert.equal(inputs.at(-1).release, true, 'Fast gestures must preserve press and release in one IPC frame');
+const settled = inputs.length;
 await nextFrame();
-assert.equal(inputs.at(-1).press, null);
-assert.equal(inputs.at(-1).release, false, 'Input edges must be consumed once');
+await nextFrame();
+assert.equal(inputs.length, settled, 'Idle frames must skip the IPC round trip');
 canvas.events.pointerdown(mouse(600, 350));
 events.blur();
 await nextFrame();
 assert.equal(inputs.at(-1).cancel, true);
 assert.equal(inputs.at(-1).press, null);
-assert.equal(inputs.at(-1).release, false);
+assert.equal(inputs.at(-1).release, false, 'Input edges must be consumed once');
 const key = key => ({ key, target: { matches: () => false }, preventDefault() {} });
 events.keydown(key('ArrowLeft'));
 await nextFrame();
@@ -59,6 +60,7 @@ element('shoot').onclick();
 await nextFrame();
 assert.equal(inputs.at(-1).shot, .35);
 table = { ...table, phase: 'ball_in_hand' };
+canvas.events.pointermove(mouse(200, 200));
 await nextFrame();
 canvas.events.pointerdown(mouse(400, 400));
 await nextFrame();

@@ -1,6 +1,11 @@
 import { drawFrameSkin } from './frame-skin.js';
 const TAU = Math.PI * 2;
 const ballColors = ['#eee9da', '#e7b42a', '#2166ae', '#b52e32', '#6b408b', '#df762b', '#24765a', '#8c3039', '#22282b'];
+// Intro fly-in pacing mirrors the legacy Python overlay: staggered per row,
+// one easing curve per ball, arcing sideways off the flight path.
+const INTRO_SECONDS = .8;
+const INTRO_STAGGER = .06;
+const SINK_SECONDS = .55;
 
 export function createRenderer(canvas, initial, images, background, frameAsset) {
   const ctx = canvas.getContext('2d');
@@ -11,6 +16,8 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
   let layer = null;
   let layerCtx = null;
   let prev = null;
+  let intro = null;
+  const effects = [];
   const circleOn = (g, x, y, r, fill) => {
     g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = fill; g.fill();
   };
@@ -22,6 +29,14 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
   const line = (a, b, color, lineWidth = 1.5) => {
     ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
     ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.stroke();
+  };
+  const ease = k => k * k * k * (10 + k * (-15 + 6 * k));
+  const mix = (a, b, k) => Math.round(a + (b - a) * k);
+  // Mint at rest, amber in the middle, ember red at full power.
+  const chargeColor = k => {
+    const [from, to] = k < .5 ? [0x69, 0xdb, 0xb3, 0xe7, 0xb4, 0x2a] : [0xe7, 0xb4, 0x2a, 0xd1, 0x55, 0x40];
+    const t = k < .5 ? k * 2 : k * 2 - 1;
+    return `rgb(${mix(from[0], to[0], t)},${mix(from[1], to[1], t)},${mix(from[2], to[2], t)})`;
   };
   function drawWallpaper() {
     const ratio = Math.max(width / background.naturalWidth, height / background.naturalHeight);
@@ -99,6 +114,13 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     }
     return sprites;
   }
+  const drawSprite = (index, x, y, shrink = 1, alpha = 1) => {
+    const { sprite, size } = baked.sprites[index];
+    const scaled = size * shrink;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(sprite, x - scaled / 2, y - scaled / 2, scaled, scaled);
+    ctx.globalAlpha = 1;
+  };
   // All balls live on one cached layer, redrawn only when a ball actually moved
   // or sank: while aiming, a frame costs two blits plus cue and guide lines.
   function drawBalls(table, scale) {
@@ -122,13 +144,49 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     }
     ctx.drawImage(layer, 0, 0, width, height);
   }
+  // Icons launch from scattered desktop spots and glide into the rack.
+  function drawIntro(table, now) {
+    const elapsed = (now - intro.start) / 1000;
+    let done = true;
+    for (let i = 0; i < intro.targets.length; i++) {
+      const local = (elapsed - (i % 7) * INTRO_STAGGER) / INTRO_SECONDS;
+      if (local < 1) done = false;
+      const k = Math.max(0, Math.min(1, local));
+      const [origin, target] = [intro.origins[i], intro.targets[i]];
+      const easeK = ease(k);
+      const dx = target[0] - origin[0], dy = target[1] - origin[1];
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const arc = Math.sin(Math.PI * k) ** 2 * Math.min(65, distance * .1) * (i % 2 ? 1 : -1);
+      const x = origin[0] + dx * easeK - dy / distance * arc;
+      const y = origin[1] + dy * easeK + dx / distance * arc;
+      drawSprite(i, x, y);
+    }
+    if (done) intro = null;
+  }
+  // A shrinking ghost plus the legacy nine-spark halo where the icon sank.
+  function drawSinkEffects(now) {
+    for (let k = effects.length - 1; k >= 0; k--) {
+      const effect = effects[k];
+      const fade = Math.min(1, (now - effect.start) / 1000 / SINK_SECONDS);
+      if (fade >= 1) { effects.splice(k, 1); continue; }
+      drawSprite(effect.index, effect.x, effect.y, 1 - fade * .54, (1 - fade) ** 1.35);
+      const alpha = Math.round(230 * Math.sin(Math.PI * fade) ** .65);
+      ctx.fillStyle = `rgba(173,255,221,${alpha / 255})`;
+      for (let j = 0; j < 9; j++) {
+        const angle = j * TAU / 9 + effect.index * .61;
+        const distance = fade * radius * (.9 + j % 3 * .36);
+        const size = Math.max(1, (1 - fade) * radius * (.11 + j % 3 * .14));
+        circleOn(ctx, effect.x + Math.cos(angle) * distance, effect.y + Math.sin(angle) * distance, size, ctx.fillStyle);
+      }
+    }
+  }
   function drawCue(table) {
     if ((!['ready', 'pull', 'stroke'].includes(table.phase) && !table.cue_follow) || table.sunk[0]) return;
     const white = { x: table.xs[0], y: table.ys[0] };
     let gap = 10 + table.charge * initial.max_pull;
     if (table.phase === 'stroke') gap *= 1 - table.stroke_progress ** 1.6;
     if (table.cue_follow > 0) gap = -12 * (1 - table.cue_follow);
-    const origin = table.phase === 'ready' || table.phase === 'pull' ? [white.x, white.y] : table.stroke_origin;
+    const origin = table.phase === 'stroke' ? table.stroke_origin : [white.x, white.y];
     const tip = -radius - gap;
     const length = Math.min(400, initial.height * .48);
     ctx.save(); ctx.translate(...origin); ctx.rotate(Math.atan2(table.aim[1], table.aim[0]));
@@ -143,8 +201,20 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     ctx.fillStyle = '#e5dfc7'; ctx.fillRect(tip - 18, -2.8, 14, 5.6);
     ctx.fillStyle = '#5397aa'; ctx.fillRect(tip - 4, -2.8, 4, 5.6);
     ctx.restore();
+    // Power arc around the cue ball while pulling: position and color both
+    // track the charge so the release moment reads at a glance.
+    if (table.phase === 'pull' && table.charge > .01) {
+      const track = radius + 7;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#f2edce2e';
+      ctx.beginPath(); ctx.arc(white.x, white.y, track, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = chargeColor(table.charge);
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(white.x, white.y, track, -Math.PI / 2, -Math.PI / 2 + TAU * table.charge); ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
   }
-  return table => {
+  const draw = table => {
     const scale = window.devicePixelRatio || 1;
     if (canvas.width !== Math.round(width * scale) || canvas.height !== Math.round(height * scale)) {
       canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale); surface = null; layer = null;
@@ -156,6 +226,12 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
       surface = document.createElement('canvas'); surface.width = canvas.width; surface.height = canvas.height;
       surface.getContext('2d').drawImage(canvas, 0, 0);
     } else ctx.drawImage(surface, 0, 0, width, height);
+    const now = performance.now();
+    if (intro) {
+      prev = null;
+      drawIntro(table, now);
+      return;
+    }
     if (initial.guide) {
       ctx.setLineDash([5, 7]);
       for (const leg of table.guide) line(leg.start, leg.end, { incoming: '#f2edceaa', white: '#b4d9e5aa', target: '#e2c27dbb' }[leg.role]);
@@ -168,5 +244,19 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     }
     drawCue(table);
     drawBalls(table, scale);
+    drawSinkEffects(now);
   };
+  const playIntro = table => {
+    intro = {
+      start: performance.now(),
+      targets: table.xs.map((x, i) => [x, table.ys[i]]),
+      origins: table.xs.map(() => {
+        const angle = Math.random() * TAU;
+        const distance = Math.hypot(width, height) * (.18 + Math.random() * .3);
+        return [width / 2 + Math.cos(angle) * distance, height / 2 + Math.sin(angle) * distance];
+      }),
+    };
+  };
+  const sink = (index, x, y) => effects.push({ index, x, y, start: performance.now() });
+  return { draw, playIntro, sink, get busy() { return intro !== null || effects.length > 0; } };
 }

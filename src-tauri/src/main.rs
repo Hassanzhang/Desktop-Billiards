@@ -263,12 +263,19 @@ fn status(state: State<Runtime>) -> Result<Option<Summary>, String> {
         .map(summary))
 }
 #[tauri::command]
-fn restart(state: State<Runtime>) -> Result<(), String> {
+fn restart(app: tauri::AppHandle, state: State<Runtime>) -> Result<(), String> {
     let mut guard = state.game.lock().map_err(|e| e.to_string())?;
+    let mut restarted = false;
     if let Some(game) = guard.as_mut() {
         game.table = Table::new(game.width, game.height, game.items.len());
         game.started = Instant::now();
         game.last = game.started;
+        restarted = true;
+    }
+    drop(guard);
+    if restarted {
+        // The table window replays the fly-in intro when it sees this event.
+        app.emit("restarted", ()).map_err(|e| e.to_string())?;
     }
     Ok(())
 }

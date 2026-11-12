@@ -7,9 +7,15 @@ let stopped = false;
 let lastTable;
 let initial;
 let selectedPower = .35;
-let render;
+let renderer = null;
 let lastScore = '';
 let lastHint = '';
+let prevSunk = null;
+let introPending = true;
+let lastInvoke = 0;
+// Clock refresh cadence for the idle loop: while nothing moves we stop the
+// per-frame IPC and only wake up about once a second to update the timer.
+const IDLE_MS = 900;
 function cancel() {
   pointer.cancel = true; pointer.press = null; pointer.shot = null;
   pointer.release = pointer.place = false; pointer.turn = 0;
@@ -49,11 +55,11 @@ canvas.addEventListener('wheel', event => {
 }, { passive: false });
 window.addEventListener('contextmenu', event => { event.preventDefault(); cancel(); });
 listen('guide', event => { if (initial) initial.guide = event.payload; });
+listen('restarted', () => { introPending = true; prevSunk = null; });
 $('power').addEventListener('input', event => { selectedPower = Number(event.target.value) / 100; $('power-value').value = `${event.target.value}%`; });
 $('shoot').onclick = () => { pointer.shot = selectedPower; canvas.focus(); };
 
 function updateControls(table) {
-  const active = ['ready', 'stroke'].includes(table.phase);
   const charge = table.phase === 'pull' || table.phase === 'stroke' ? table.charge : selectedPower;
   $('power').value = Math.round(charge * 100);
   $('power-value').value = `${Math.round(charge * 100)}%`;
@@ -64,13 +70,13 @@ function updateControls(table) {
   if (score !== lastScore) { lastScore = score; $('table-score').textContent = score; }
   const hint = table.phase === 'finished' ? '清台完成 · 在控制面板重新开始'
     : table.phase === 'ball_in_hand' ? '白球入袋 · 点击台面空处摆球'
-    : table.phase === 'return_white' ? '白球入袋 · 正在复位'
+    : table.phase === 'return_white' ? '白球入袋 · 请点击台面空处摆球'
     : table.phase === 'pull' ? '方向已锁定 · 向后拉杆 · 松手击球 · 右键 / 空格取消'
-    : !active ? '图标滚动中…'
+    : table.phase === 'stroke' || table.phase === 'rolling' ? '图标滚动中…'
     : '移动瞄准 · 按住向后拉杆 · 松手击球 · ← → / 滚轮微调';
   if (hint !== lastHint) { lastHint = hint; $('table-hint').textContent = hint; }
   let hover = -1;
-  if (table.phase === 'ready') {
+  if (table.phase === 'ready' && !renderer?.busy) {
     for (let i = 1; i < table.xs.length; i++) {
       if (!table.sunk[i] && Math.hypot(pointer.x - table.xs[i], pointer.y - table.ys[i]) < initial.radius) {
         hover = i; break;
@@ -90,10 +96,25 @@ async function frame() {
   if (stopped) return;
   try {
     const input = { ...pointer };
+    const pending = input.press !== null || input.shot !== null || input.turn !== 0
+      || input.release || input.place || input.cancel || input.move_aim;
     pointer.press = pointer.shot = null; pointer.turn = 0;
     pointer.release = pointer.place = pointer.cancel = pointer.move_aim = false;
-    lastTable = await invoke('frame', { pointer: input });
-    render(lastTable); updateControls(lastTable);
+    const animating = renderer?.busy
+      || ['pull', 'stroke', 'rolling', 'return_white'].includes(lastTable?.phase)
+      || (lastTable?.cue_follow ?? 0) > 0;
+    if (pending || animating || Date.now() - lastInvoke >= IDLE_MS) {
+      lastInvoke = Date.now();
+      lastTable = await invoke('frame', { pointer: input });
+      if (introPending) { renderer.playIntro(lastTable); introPending = false; }
+      if (prevSunk) {
+        for (let i = 0; i < lastTable.sunk.length; i++) {
+          if (lastTable.sunk[i] && !prevSunk[i]) renderer.sink(i, lastTable.xs[i], lastTable.ys[i]);
+        }
+      }
+      prevSunk = lastTable.sunk;
+      renderer.draw(lastTable); updateControls(lastTable);
+    }
     requestAnimationFrame(frame);
   } catch (error) {
     stopped = true; cancel();
@@ -109,6 +130,6 @@ try {
   const background = initial.wallpaper ? await loadImage(initial.wallpaper).catch(() => null) : null;
   const images = await Promise.all(initial.items.map(item => item.image ? loadImage(item.image).catch(() => { throw new Error(`图标加载失败：${item.name}`); }) : null));
   const frameAsset = await loadImage('assets/table-frame.png');
-  render = createRenderer(canvas, initial, images, background, frameAsset);
+  renderer = createRenderer(canvas, initial, images, background, frameAsset);
   canvas.focus(); frame();
 } catch (error) { $('table-error').textContent = `${error}\n请在控制面板结束本局后重试。`; }

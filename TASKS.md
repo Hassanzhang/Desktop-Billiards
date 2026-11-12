@@ -12,6 +12,8 @@
 
 - [x] T-007 / F-003：修正 macOS 台面层级至普通应用窗口之下，覆盖桌面小组件；不修改系统桌面设置。编译和构建结果见 VALIDATION.md，小组件实际遮挡仍需原生验收。
 
+- [x] T-014 / F-002、F-005：拉杆并入状态机（`Phase::Pull`，快照移除 `pulling` 字段）；台面新增开局／重开图标飞入动画、入袋缩小幽灵加粒子环、拉杆力度弧；击球按钮补 hover／active；空闲时前端跳过每帧 IPC，约 0.9s 唤醒刷新计时。`npm test`、`npm run check`、`cargo fmt --check` 通过；动效与功耗收益待原生视觉与帧剖面验收（T-009 边界）。
+
 ## 待验收
 
 - [ ] T-004 / F-001～F-004：完整跨平台原生操作、Finder 权限、Windows 安装包、DPI 与进程退出验收。macOS 控制面板和试玩台面已打开；其余平台／操作证据与阻塞见 [VALIDATION.md](VALIDATION.md)。

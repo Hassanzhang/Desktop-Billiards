@@ -98,3 +98,17 @@
 - 未覆盖：渲染器 sprite／球层缓存仅静态检查与模拟 IPC 验证，未在真实桌面窗口做原生视觉回归；命中悬停文件名的像素级外观未复验；未测真实 Finder 桌面帧率；Windows 与多显示器 DPI 行为沿用既有未验收项。
 - 本轮改动在并行工作流提交 `perf(T-012)` 之后单独提交，不混入他人改动；未发布。
 - 追加交付：`npm run build -- --bundles dmg` 生成 `Desktop Icon Billiards_0.1.1_aarch64.dmg`（约 4.5 MiB，`hdiutil verify` 校验通过），已复制至 `dist/`；`.app` 从同一 DMG 提取，与包内二进制一致，启动冒烟通过。dmg 打包脚本会清理 `target` 内的 macos bundle，交付 `.app` 需从 DMG 提取或重新 `--bundles app`。
+
+## T-014 · 2026-11-12 · 状态机合并、动效与空闲帧跳过（未发布）
+
+- 拉杆从并行布尔并入状态机：`Phase::Pull` 独立阶段，快照移除 `pulling` 字段；拉杆中禁用侧栏击球、摆白球与微调，取消回 ready，松手进 stroke。`restart` 现广播 `restarted` 事件供台面重放开场动画。
+- 台面动效（前端渲染层）：开局／重开图标飞入（散点起点、`i%7` 交错 0.06s、单球 0.8s、sin² 侧偏弧线）；入袋缩小幽灵加 9 点薄荷粒子环（0.55s，按球半径缩放）；拉杆力度弧（radius+7、3px、charge 决定弧长，颜色薄荷→琥珀→炭红）。击球按钮补 hover／active 变体并把 disabled 指针从 wait 改为 default。
+- 空闲帧跳过：前端帧循环在无一次性输入、无拉杆／滚动／返回动画、无飞入／入袋特效时不调用 `frame`，约 0.9s 唤醒一次仅刷新计时。一次性输入仍逐帧送达，测试覆盖空闲不重复发帧与手势合并。
+- `npm test`：10 项 Rust 测试（含新增 `pull_is_a_phase`）与 3 个 Node 回归通过；`npm run check`（Clippy `-D warnings`）、`cargo fmt --check`、`node --check` 三个前端文件通过。
+- 未覆盖：飞入动画、粒子、力度弧为模拟验证（vm 桩渲染器），未做原生视觉回归；空闲功耗收益未在用户桌面实测帧率或能耗（按 T-009 边界）；拉杆手势、取消、重开动画的真实窗口操作待原生验收。测试模拟中阶段变更发生在两次帧之间，需一次输入帧让 `lastTable` 跟上后摆球手势才生效；真实会话中阶段变化发生在连续帧流内，不存在该窗口。
+
+## 白球摆球交互修正 · 2026-11-12 · 未发布
+
+- 用户要求白球入袋后不自动摆回。`step` 的 ReturnWhite 分支移除 fallback 自动摆位循环，0.8s 停顿后仅进入 `BallInHand`，白球保持沉袋直至玩家点击台面空处（`place_white` 校验不变）。前端两阶段提示统一为“点击台面空处摆球”，README 与 DESIGN.md 同步。
+- `npm test`：10 项 Rust 测试通过（原 `scratch_returns_and_finished_clock_freezes` 改为 `scratch_pauses_then_hands_ball_to_player`，断言停顿后停在 BallInHand、白球仍沉袋、需真实点击才复位）；Node 三项回归、`npm run check`、`cargo fmt --check` 通过。
+- 未覆盖：等待→摆球的实际点击体验待原生验收（沿用 T-014 边界）。
