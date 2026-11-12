@@ -174,3 +174,8 @@
 - 使用用户原图 `frontend/assets/launcher-background.png`，标题居中、辅助线按钮靠右；暖金主按钮及文字、深色半透明统计区，移除底部退出快捷键与技术版本文案。退出按钮与快捷键行为保留。
 - Chrome headless + CDP，模拟 `window.__TAURI__` IPC，在 460×248 CSS px（模拟 460×280 原生窗口扣除标题栏）、DPR 2 截图复核：背景正常、无底部小字、无默认滚动条，标题不再与左上灯具重叠。启动调用、辅助线开关、运行中统计、权限失败提示均通过。
 - `node tests/desktop-loading.mjs`、`node tests/table-input.mjs`、`node tests/frame-skin.mjs`、`node --check frontend/main.js` 通过。Impeccable detector 无发现（首次背景改动后运行）。原生 Tauri 桌面窗口未做本轮实机视觉验收；浏览器使用模拟 IPC，不证明真实桌面权限与启动流程。
+
+## 应用图标替换 · 2026-11-12 · 未发布
+
+- 用户提供的 `frontend/assets/icon.png`（1254×1254，黑 8＋白球＋球杆＋木金边框）替换应用图标：`sips` 重采样 1024×1024 覆盖 `assets/desktop-icon-billiards.png`；`assets/desktop-icon-billiards.ico` 由 Python 标准库 PNG 解码＋盒滤波缩放重建（16/24/32/48/64/128 BMP 条目＋256 PNG 压缩条目，共 269KB），`sips` 解包 256 条目渲染确认内容正确。`tauri.conf.json` 引用路径不变。
+- macOS `.app` 重新打包（`npm run build -- --bundles app`）以嵌入新图标；Finder／Dock 实际显示效果待原生确认（macOS 图标缓存可能需要重启 Dock 或重新挂载）。
