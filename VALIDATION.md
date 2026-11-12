@@ -261,3 +261,17 @@
 - `b961977c6150f6fc52e839d0864378792c78267f00d7b4d886d8fb3a7075fe1a  Desktop Icon Billiards_0.1.1_aarch64.dmg`
 - `f821f73ab6adf9c0187743e8e15ccfd2d772dc88f4b08c35798240e145d3c0b1  Desktop Icon Billiards_0.1.1_x64-setup.exe`
 - `f300857571f081de43d06dbf584ad2b0a889efcc2d77f3a182be1c6beb891a11  DesktopIconBilliards_0.1.1_windows_x64.zip`
+
+## T-030：连续击球台面卡死排查（2026-11-12）
+
+- 用户 Windows 现象为“小窗可用，但台球击球界面完全卡死”。这不能直接归因为整个应用 UI 主线程死锁；没有 Windows 堆栈、WebView2 错误日志或驻留内存采样，未认定唯一根因。
+- 发现并复现资源生命周期缺陷：`updateCueLayer` 在球杆不可见时将 `cueLayer` 置空，下一杆重新创建全屏离屏 Canvas。用模拟 Canvas API 驱动 3840×2160、DPR 1 的 100 次 ready→rolling 切换，旧实现共创建 103 张全屏 Canvas，修复后为 4 张（含主画布／静态面／球层／球杆层）。单张 RGBA 缓冲理论大小 31.64 MiB；这是累计创建数与理论缓冲大小，不是实测同时驻留内存，不据此推导已泄漏 3 GiB。
+- 改为 `cueActive` 控制可见，保留球杆画布／context，绘制球杆和接触阴影时检查可见；原有 DPR 变化重建路径保留。
+- 新增 `tests/renderer-resources.mjs`：每个 DPR（1、2）各模拟 100 杆，切换拉杆／出杆／滚动／手中球／ready；检查稳定 DPR 下无新增 Canvas、隐藏时无球杆与阴影 blit、再次瞄准恢复球杆。旧代码在分配数检查失败（108 !== 8），修复后 PASS。此为模拟生命周期验证，不是原生 GPU 性能测试。
+- Chrome headless 实际 Canvas 渲染回归：`tests/cue-preview.html`、`tests/ball-preview.html` 在 DPR 1 和 2 均 PASS，覆盖杆径、杆外透明、拉杆／触球和图标比例／透明／原色。未改动视觉样式、素材或物理规则。
+- `npm test`：12 Rust 测试通过、1 个真实 Finder 探针忽略、4 个 Node 回归通过；`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check` 通过。
+- 本轮仅 Windows 包更新；macOS dist 仍为 T-029 平台线程修正版。Windows 连续击球实机复验待完成；若仍卡死，需进一步获取台面绘制异常／frame IPC 是否返回／WebView2 渲染进程状态，不能将本次分配修复描述为已确认解决该用户故障。
+
+- T-030 Windows NSIS 交叉构建成功，dist 安装包与便携 ZIP 已更新；ZIP CRC 与业务 EXE 字节检查通过。当前校验和：
+- `8d37c46271788df94b7290f56b1f5ff68d848801650b37456fe26a853ba2d62a  Desktop Icon Billiards_0.1.1_x64-setup.exe`
+- `a29a26f3cc84f1298def257b80f3090cdb9c28e7dec4f5f95692ca8c1916a71c  DesktopIconBilliards_0.1.1_windows_x64.zip`

@@ -166,6 +166,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
   }
   let cueLayer = null;
   let cueCtx = null;
+  let cueActive = false;
   const flashes = [];
   const flash = (x, y, aim) => flashes.push({ x, y, aim: [aim[0], aim[1]], start: performance.now() });
   const cueLength = () => Math.min(400, initial.height * .48);
@@ -185,7 +186,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
   // the balls so they occlude it like real felt shading. Built from the cue
   // layer's own pixels, so it follows the cue shape instead of a rectangle.
   function drawContactShadow() {
-    if (!cueLayer) return;
+    if (!cueActive || !cueLayer) return;
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.18)';
     ctx.shadowBlur = 4;
@@ -197,7 +198,9 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
   // private layer; the tip is mirrored so the texture's left-hand cue head
   // points at the white ball.
   function updateCueLayer(table, scale) {
-    if (!cueAsset || !cueVisible(table)) { cueLayer = null; return; }
+    cueActive = Boolean(cueAsset && cueVisible(table));
+    // Keep the full-screen backing store across shots; hiding is not disposal.
+    if (!cueActive) return;
     if (!cueLayer) {
       cueLayer = document.createElement('canvas');
       cueLayer.width = canvas.width; cueLayer.height = canvas.height;
@@ -388,7 +391,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     updateCueLayer(table, scale);
     drawContactShadow();
     drawBalls(table, scale);
-    if (cueLayer) ctx.drawImage(cueLayer, 0, 0, width, height);
+    if (cueActive && cueLayer) ctx.drawImage(cueLayer, 0, 0, width, height);
     drawChargeArc(table);
     drawSinkEffects(now);
     drawFlashes(now);

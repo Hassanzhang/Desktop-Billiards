@@ -50,3 +50,7 @@ Finder 项目名称和 URL 各一次批量查询，替代逐项目跨进程调�
 ## 平台窗口创建线程（T-028、T-029）
 
 `open_game` 的调度按平台区分：Windows 使用 `#[tauri::command(async)]` 在异步执行器中调用，避免同步 IPC 创建 WebView2 的死锁（Tauri 2.12.5 已知问题，wry #583）；macOS 使用普通同步 Tauri 命令，让 AppKit 的窗口层级与 Spaces 设置留在主线程。函数体共用，不能将两平台一起改成 `async fn`。`game` 互斥锁仍在构建台面之前释放。
+
+## 连续击球的画布生命周期（T-030）
+
+球杆的全屏离屏 Canvas 与 context 在同一局、相同 DPR 下复用；`cueActive` 单独控制球杆及其阴影是否参与绘制，滚动／手中球阶段不销毁 backing store。DPR／画布尺寸改变时仍按原有路径重建。修复原先每杆“隐藏→重新瞄准”都分配一张全屏画布的资源抖动；这不等于已证明 Windows 卡死的唯一原因。`tests/renderer-resources.mjs` 验证资源创建上界和隐藏态无残影，属于模拟 Canvas API 验证，不是 GPU 内存／帧率测量。
