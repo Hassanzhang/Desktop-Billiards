@@ -186,3 +186,11 @@
 - `tests/ball-preview.html` 使用真实 renderer 和模拟状态：非方形透明孔洞图、带完整方角的 Word 图、带透明留白文档，分别以 23/48px 半径、DPR 1/2 在本机 Chrome headless 运行。对照直接 contain 绘制的参考，检查不透明均匀区域 RGB 差 ≤2、透明孔洞和上侧留白显示原台面；两组全部 PASS。像素边缘因浏览器滤波不参与严格色差比较，完整方角与轮廓通过截图／不透明区域检查。测试以新快照数组触发真实图层缓存更新，未改产品缓存契约。
 - `node --check frontend/table-renderer.js`、`npm test`（10 项 Rust、3 项 Node 通过，真实 Finder 性能测试沿用忽略）、`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check` 通过。首次 Rust 检查曾被工作区应用图标 `is not RGBA` 阻断，工作区后续图标修正后重新运行通过；本轮未改应用图标。
 - Impeccable detector 无阻断项，仅对测试页面继承文字色报 advisory；测试页已显式设置浅色文字。未执行 Tauri 原生桌面操作／Windows 验收或原生性能测量；64×64 原图在大幅放大时仍有分辨率上限。
+
+
+## T-022 · 2026-11-12 · 应用图标替换（未发布）
+
+- 原图：用户提供的 `/Users/hassanzhang/Desktop/c046cae9-6ef8-475f-a5ff-d11f9428282e.png`（1254×1254 RGBA）。`frontend/assets/icon.png` 按字节原样保存；Tauri 原生 CLI `tauri icon <原图> --output /tmp/billiards-new-app-icons` 生成兼容图标，取 512×512 RGBA `icon.png` 更新 `assets/desktop-icon-billiards.png`，`icon.ico` 更新既有 ICO 路径。未重绘原图，未改变原始比例或透明背景。
+- Pillow 只读检查：PNG 为 512×512 RGBA；ICO 包含 16/24/32/48/64/256px 六种尺寸，RGBA；源图副本与用户原图逐字节一致。
+- `npm run build -- --bundles app` 成功，产物为 `src-tauri/target/release/bundle/macos/Desktop Icon Billiards.app`（13.58 MiB）。按包内 Info.plist 查得 `Resources/Desktop Icon Billiards.icns`，其 512px 图层与本轮 PNG 解码后逐像素一致。只更换素材，无代码／配置逻辑变更，未重复无关游戏测试。
+- 未覆盖：Windows 实机图标、macOS Finder／Dock 图标缓存刷新与重启后的实际显示；未发布或安装到系统目录。

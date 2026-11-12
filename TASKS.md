@@ -60,3 +60,7 @@
 ## 原始图标显示
 
 - [x] T-021 / F-002、F-005：按用户确定方案替代 T-019 的球面图标印刷。删除图标 cover 裁切、球面变形与材质叠加，原图 contain 显示、保留透明与完整轮廓，只加淡接触阴影；白球、黑八及圆形碰撞保持不变。更新 `tests/ball-preview.html` 检查两种半径、DPR 1/2 下的原色、比例、方角、透明孔洞与留白；回归证据见 VALIDATION.md。提交按 `fix(T-021): preserve original desktop icon appearance` 检索。
+
+## 应用图标替换
+
+- [x] T-022 / F-001：以用户 `c046cae9-6ef8-475f-a5ff-d11f9428282e.png` 替换应用图标原图，使用 Tauri 图标工具生成 512×512 RGBA PNG 及多尺寸 ICO，更新既有素材路径；macOS `.app` 构建成功，包内 ICNS 512px 图层与新 PNG 逐像素一致。Windows 实机显示未验收。提交按 `chore(T-022): replace app icon with supplied billiards artwork` 检索。
