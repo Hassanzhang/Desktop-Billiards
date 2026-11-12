@@ -124,3 +124,12 @@
 - 用户诉求：杆身不再用梯形＋斜线充木头；改用其提供的 `frontend/assets/cue.png`（2172×724、透明背景、已含枫木纹／亚麻握把／环饰／铜箍／皮革头，杆头朝图左）。实现：贴图按 `aim` 旋转绘制（长度沿用 `min(400, 台面高 × 0.48)`，等比缩放保留图内细节）；屏幕空间圆柱光用独立 cue 图层 `source-atop` 叠加，渐变轴取垂直于杆轴且朝屏幕上方的方向，亮带固定上沿不随杆旋转；布面接触影（`blur(3px)`、alpha 0.13、屏幕向下 2.5px、画于球之下）；叠放先球后杆，`destination-out` 只裁掉与白球重叠的杆头段；收势从 `-12×(1-cue_follow)` 改为 `-4×cue_follow` 短随动；stroke→rolling 瞬间触发触点闪光（半径 `radius×0.3`、alpha 0.6、130ms）。力度弧与随动参数同步进 DESIGN.md。
 - `node --check` 三个前端文件、`tests/table-input.mjs`、`tests/frame-skin.mjs` 通过；Rust 无改动，物理回归沿用上轮结果。
 - 未覆盖：贴图杆的实拍视觉（旋转方向、光带位置、裁切开合、闪光大小）、`ctx.filter` 在系统 WebKit 的模糊效果均需原生验收；模拟桩不渲染贴图。
+
+## T-017 · 2026-11-12 · 球材质拆分、matcap 与 14 球发球（未发布）
+
+- 用户反馈三个点：(1) 阴影烘焙在球精灵里，球靠近时像贴纸叠贴；(2) 需要台球 matcap 材质、图标球面压缩内切、高光固定左上；(3) 每局 7 球太少改为 14，且实机出现两个黑 8。另报 `TypeError: undefined is not an object (evaluating 'white.x')` 使球杆整根不显示。
+- 修复：`cueGeom` 未返回 `white`——补上后杆图层恢复绘制。双黑 8 根因：黑 8 占据球阵中央（index 5／现在 13）后，其后的球索引未前移，`bake` 的 `images[i-1]` 映射越界落到无图回退的"数字 8 条纹球"上——新增 `ballImage` 映射（`i>black8 → images[i-2]`），悬停文件名同步改为 `hover < black8 ? hover-1 : hover-2`。
+- 材质：精灵不再烘焙投影；`drawBallShadow` 在球层内画偏下（0.36r）椭圆软影（scale(1,.55)、径向渐变 alpha 0.32），开场动画同步。`drawBallFace` 重写：干净底色圆 → 图标 contain 进内切圆（0.8r）后 12 条 sin 竖条球面压缩、底色渐变熔边留球色环 → `ball-matcap.png`（透明背景、球体 504/512，`multiply` 对齐球径）→ 固定左上锐高光 + 0.2 边缘座光。白球底色 `#f6f3e8`，黑 8 `#14171a`，全部球共享同一光向。
+- 发球：`pick_seven` 泛化为 `pick_icons(items, ICONS_PER_GAME=14)`，`open_game`/`restart` 同步，不足 14 个提示拒绝。Rack=15（14+黑 8），白球共 16 球。
+- `npm test`（10 项 Rust + 3 项 Node）、`npm run check`、`cargo fmt --check`、`node --check` 通过。
+- 未覆盖：matcap 光向观感、阴影柔和度、球面压缩强度、双黑 8 修复的实机确认均待原生验收；模拟桩不渲染贴图。

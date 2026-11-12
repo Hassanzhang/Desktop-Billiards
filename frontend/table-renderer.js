@@ -7,7 +7,7 @@ const INTRO_SECONDS = .8;
 const INTRO_STAGGER = .06;
 const SINK_SECONDS = .55;
 
-export function createRenderer(canvas, initial, images, background, frameAsset, cueAsset) {
+export function createRenderer(canvas, initial, images, background, frameAsset, cueAsset, matcapAsset) {
   const ctx = canvas.getContext('2d');
   const { width, height, radius } = initial;
   const black8 = initial.black8 ?? images.length + 1;
@@ -66,13 +66,13 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     }
     drawFrameSkin(ctx, frameAsset, geom);
   }
-  // Each ball is baked once into a sprite: shadow, icon, shading and gloss are
-  // pre-rendered, so a frame only blits `drawImage` per ball.
+  // Each ball is baked once into a sprite: clean circle, spherized icon,
+  // matcap shading and specular are pre-rendered, so a frame only blits
+  // `drawImage` per ball. No shadow is baked — felt shadows are drawn
+  // separately so stacked balls never read as two layered stickers.
   function drawBallFace(g, index, image, x, y) {
     g.save();
-    g.shadowColor = '#02130fb3'; g.shadowBlur = 5; g.shadowOffsetY = 4; g.shadowOffsetX = 2;
-    circleOn(g, x, y, radius, index === 0 ? '#f4f0df' : index === black8 ? '#171a1d' : ballColors[(index - 1) % 8 + 1]);
-    g.shadowColor = 'transparent';
+    circleOn(g, x, y, radius, index === 0 ? '#f6f3e8' : index === black8 ? '#14171a' : ballColors[(index - 1) % 8 + 1]);
     g.beginPath(); g.arc(x, y, radius, 0, TAU); g.clip();
     if (index === black8) {
       circleOn(g, x, y, radius * .46, '#f5eedc');
@@ -80,8 +80,28 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
       g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('8', x, y + .5);
     } else if (index > 0) {
       if (image) {
-        const ratio = radius * 2 / Math.max(image.naturalWidth, image.naturalHeight);
-        g.drawImage(image, x - image.naturalWidth * ratio / 2, y - image.naturalHeight * ratio / 2, image.naturalWidth * ratio, image.naturalHeight * ratio);
+        // Slight spherical compression: contain-fit the icon into the inner
+        // disc, then lay it down in vertical strips warped by a sine so the
+        // edges pinch toward the rim. A ring of ball color stays visible.
+        const inset = radius * .8;
+        const side = Math.ceil(inset * 2);
+        const tex = document.createElement('canvas');
+        tex.width = tex.height = side;
+        const tg = tex.getContext('2d');
+        const fit = side / Math.max(image.naturalWidth, image.naturalHeight);
+        tg.drawImage(image, (side - image.naturalWidth * fit) / 2, (side - image.naturalHeight * fit) / 2, image.naturalWidth * fit, image.naturalHeight * fit);
+        const strips = 12;
+        for (let k = 0; k < strips; k++) {
+          const u0 = k / strips, u1 = (k + 1) / strips;
+          const dx0 = Math.sin((u0 - .5) * Math.PI) * inset;
+          const dx1 = Math.sin((u1 - .5) * Math.PI) * inset;
+          g.drawImage(tex, u0 * side, 0, side / strips, side, x + dx0, y - inset, dx1 - dx0, inset * 2);
+        }
+        // Melt the icon disc edge into the ball color so it reads curved.
+        const melt = g.createRadialGradient(x, y, inset * .84, x, y, inset);
+        melt.addColorStop(0, 'rgba(0,0,0,0)');
+        melt.addColorStop(1, index === 0 ? 'rgba(246,243,232,0.4)' : `${ballColors[(index - 1) % 8 + 1]}66`);
+        circleOn(g, x, y, inset, melt);
       } else {
         if (index > 8) {
           g.fillStyle = '#eee8d8'; g.fillRect(x - radius, y - radius, radius * 2, radius * .42);
@@ -92,24 +112,47 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
         g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(index), x, y + .5);
       }
     }
-    const shade = g.createRadialGradient(x - radius * .32, y - radius * .4, radius * .1, x + radius * .05, y + radius * .1, radius * 1.1);
-    shade.addColorStop(0, '#ffffff36'); shade.addColorStop(.5, '#ffffff00'); shade.addColorStop(.82, '#071c1726'); shade.addColorStop(1, '#020e0bbf');
-    circleOn(g, x, y, radius, shade);
-    const shine = g.createRadialGradient(x - radius * .33, y - radius * .4, 0, x - radius * .33, y - radius * .4, radius * .4);
-    shine.addColorStop(0, '#ffffffb3'); shine.addColorStop(.4, '#ffffff33'); shine.addColorStop(1, '#ffffff00');
-    circleOn(g, x - radius * .33, y - radius * .4, radius * .4, shine);
+    // Phenolic look: the matcap is multiplied in for shading and the fresnel
+    // edge, then a fixed top-left specular sits on top. Every ball shares the
+    // same light direction; nothing here rotates with rolling.
+    const mat = radius * 2 * 512 / 504;
+    g.globalCompositeOperation = 'multiply';
+    g.drawImage(matcapAsset, x - mat / 2, y - mat / 2, mat, mat);
+    g.globalCompositeOperation = 'source-over';
+    const spec = g.createRadialGradient(x - radius * .34, y - radius * .38, 0, x - radius * .34, y - radius * .38, radius * .5);
+    spec.addColorStop(0, '#ffffffd9');
+    spec.addColorStop(.35, '#ffffff47');
+    spec.addColorStop(1, '#ffffff00');
+    circleOn(g, x, y, radius, spec);
+    const rim = g.createRadialGradient(x, y, radius * .8, x, y, radius);
+    rim.addColorStop(0, 'rgba(4,14,11,0)');
+    rim.addColorStop(1, 'rgba(4,14,11,0.2)');
+    circleOn(g, x, y, radius, rim);
+    g.restore();
+  }
+  // The felt shadow lives with the balls layer, not the sprite: an offset
+  // elliptical pool drawn beneath every ball.
+  function drawBallShadow(g, x, y) {
+    g.save();
+    g.translate(x, y + radius * .36);
+    g.scale(1, .55);
+    const shadow = g.createRadialGradient(0, 0, radius * .12, 0, 0, radius * 1.04);
+    shadow.addColorStop(0, 'rgba(3,12,9,0.32)');
+    shadow.addColorStop(1, 'rgba(3,12,9,0)');
+    circleOn(g, 0, 0, radius * 1.04, shadow);
     g.restore();
   }
   function bake(scale) {
-    // 12px padding covers the baked drop shadow (blur 5, offsets 2/4).
-    const size = Math.ceil((radius + 12) * 2);
+    const size = Math.ceil((radius + 8) * 2);
     const sprites = [];
+    // Icon images skip the black eight slot: balls after it shift by one.
+    const ballImage = i => i === 0 || i === black8 ? null : i < black8 ? images[i - 1] : images[i - 2];
     for (let i = 0; i <= images.length + 1; i++) {
       const sprite = document.createElement('canvas');
       sprite.width = sprite.height = Math.ceil(size * scale);
       const g = sprite.getContext('2d');
       g.scale(scale, scale);
-      drawBallFace(g, i, images[i - 1], size / 2, size / 2);
+      drawBallFace(g, i, ballImage(i), size / 2, size / 2);
       sprites.push({ sprite, size });
     }
     return sprites;
@@ -137,7 +180,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     if (table.cue_follow > 0) gap = -4 * table.cue_follow;
     const origin = table.phase === 'stroke' ? table.stroke_origin : [table.xs[0], table.ys[0]];
     const angle = Math.atan2(table.aim[1], table.aim[0]);
-    return { origin, angle, tipX: -radius - gap };
+    return { white: { x: table.xs[0], y: table.ys[0] }, origin, angle, tipX: -radius - gap };
   };
   // A faint blurred streak on the cloth, offset screen-down; drawn beneath
   // the balls so they occlude it like real felt shading.
@@ -260,6 +303,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
       layerCtx.clearRect(0, 0, width, height);
       for (let i = 0; i < xs.length; i++) {
         if (sunk[i]) continue;
+        drawBallShadow(layerCtx, xs[i], ys[i]);
         const { sprite, size } = baked.sprites[i];
         layerCtx.drawImage(sprite, xs[i] - size / 2, ys[i] - size / 2, size, size);
       }
@@ -282,6 +326,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
       const arc = Math.sin(Math.PI * k) ** 2 * Math.min(65, distance * .1) * (i % 2 ? 1 : -1);
       const x = origin[0] + dx * easeK - dy / distance * arc;
       const y = origin[1] + dy * easeK + dx / distance * arc;
+      drawBallShadow(ctx, x, y);
       drawSprite(i, x, y);
     }
     if (done) intro = null;

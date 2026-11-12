@@ -18,6 +18,8 @@
 
 - [x] T-016 / F-005：球杆贴图化。`assets/cue.png`（用户素材，透明背景、杆头朝左）替换手绘梯形杆：贴图按 aim 旋转，亮带用屏幕空间 `source-atop` 渐变固定在上沿不随杆旋转；布面接触影（blur 3px、alpha 0.13、下偏 2.5px）画在球之下；叠放先球后杆，杆头经 `destination-out` 只在与白球重叠段裁开；收势从 12px 穿球改为 4px 短随动；stroke→rolling 瞬间在触点闪 (130ms) 微光点。`node --check`、Node 回归通过；原生视觉待实机验收。
 
+- [x] T-017 / F-002、F-005：球材质与发球数量。每局目标球由 7 增至 14（`pick_icons`，池不足 14 拒绝开局）；接触阴影从烘焙精灵拆出，改为球层内偏下椭圆软影，消除贴纸叠影；图标球面压缩（12 条 sin 竖条，内切 0.8r，留球色边）并叠 `assets/ball-matcap.png`（multiply 对齐 504/512）＋固定左上锐高光＋0.2 边缘座光，光照方向全桌统一；白球同 matcap 更白，黑 8 同理。修复两处渲染缺陷：黑 8 槽位后的图标索引未前移导致出现第二个"黑 8"（`ballImage` 映射与悬停名称同步修正）；`cueGeom` 未返回 `white` 使杆图层首帧抛 `TypeError` 且循环停止。`npm test`、`npm run check`、`cargo fmt --check`、`node --check` 通过；matcap 视觉与阴影观感待原生验收。
+
 ## 待验收
 
 - [ ] T-004 / F-001～F-004：完整跨平台原生操作、Finder 权限、Windows 安装包、DPI 与进程退出验收。macOS 控制面板和试玩台面已打开；其余平台／操作证据与阻塞见 [VALIDATION.md](VALIDATION.md)。

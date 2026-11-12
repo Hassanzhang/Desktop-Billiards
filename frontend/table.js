@@ -94,7 +94,7 @@ function updateControls(table) {
   const tooltip = $('file-name');
   tooltip.hidden = hover < 0;
   if (hover > 0) {
-    tooltip.textContent = initial.items[hover - 1].name;
+    tooltip.textContent = initial.items[hover < initial.black8 ? hover - 1 : hover - 2].name;
     const bx = table.xs[hover], by = table.ys[hover];
     tooltip.style.left = `${Math.max(12, Math.min(initial.width - 232, bx - 100)) / initial.width * 100}%`;
     tooltip.style.top = `${Math.min(initial.height - 70, by + initial.radius + 12) / initial.height * 100}%`;
@@ -142,11 +142,12 @@ async function loadTable() {
   initial = await invoke('initial');
   const background = initial.wallpaper ? await loadImage(initial.wallpaper).catch(() => null) : null;
   const images = await Promise.all(initial.items.map(item => item.image ? loadImage(item.image).catch(() => { throw new Error(`图标加载失败：${item.name}`); }) : null));
-  const [frameAsset, cueAsset] = await Promise.all([
+  const [frameAsset, cueAsset, matcapAsset] = await Promise.all([
     loadImage('assets/table-frame.png'),
     loadImage('assets/cue.png'),
+    loadImage('assets/ball-matcap.png'),
   ]);
-  renderer = createRenderer(canvas, initial, images, background, frameAsset, cueAsset);
+  renderer = createRenderer(canvas, initial, images, background, frameAsset, cueAsset, matcapAsset);
 }
 try {
   await loadTable();

@@ -57,9 +57,11 @@ fn summary(game: &Game) -> Summary {
             .count(),
     }
 }
-/// Shuffle-free reservoir tail pick: seven random desktop icons per game,
+/// Icons dealt per game: fourteen object balls plus the white and black eight.
+const ICONS_PER_GAME: usize = 14;
+/// Shuffle-free reservoir tail pick: `count` random desktop icons per game,
 /// seeded from the wall clock so every start deals a different set.
-fn pick_seven(mut items: Vec<DesktopItem>) -> Vec<DesktopItem> {
+fn pick_icons(mut items: Vec<DesktopItem>, count: usize) -> Vec<DesktopItem> {
     let mut seed = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs() ^ u64::from(d.subsec_nanos()))
@@ -72,11 +74,11 @@ fn pick_seven(mut items: Vec<DesktopItem>) -> Vec<DesktopItem> {
         seed
     };
     let n = items.len();
-    for i in (n - 7..n).rev() {
+    for i in (n - count..n).rev() {
         let j = (random() % (u64::try_from(i).unwrap_or(0) + 1)) as usize;
         items.swap(j, i);
     }
-    items.split_off(n - 7)
+    items.split_off(n - count)
 }
 #[tauri::command]
 async fn prepare_desktop(
@@ -109,10 +111,10 @@ fn open_game(
         .map_err(|e| e.to_string())?
         .take()
         .ok_or("请先读取桌面图标")?;
-    if prepared.len() < 7 {
-        return Err("桌面图标不足 7 个，无法开始游戏".into());
+    if prepared.len() < ICONS_PER_GAME {
+        return Err(format!("桌面图标不足 {ICONS_PER_GAME} 个，无法开始游戏"));
     }
-    let items = pick_seven(prepared.clone());
+    let items = pick_icons(prepared.clone(), ICONS_PER_GAME);
     if items.iter().any(|i| {
         i.name.len() > 4096
             || i.image.len() > 8_000_000
@@ -296,8 +298,8 @@ fn restart(app: tauri::AppHandle, state: State<Runtime>) -> Result<(), String> {
     let mut guard = state.game.lock().map_err(|e| e.to_string())?;
     let mut restarted = false;
     if let Some(game) = guard.as_mut() {
-        // Every restart deals a new random seven from the desktop pool.
-        game.items = pick_seven(game.pool.clone());
+        // Every restart deals a new random set from the desktop pool.
+        game.items = pick_icons(game.pool.clone(), ICONS_PER_GAME);
         game.table = Table::new(game.width, game.height, game.items.len());
         game.started = Instant::now();
         game.last = game.started;
