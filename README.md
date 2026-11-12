@@ -57,6 +57,10 @@ Windows 也可以运行 `pwsh -File build.ps1`；依赖已装好时加 `-SkipDep
 
 当前应用不截屏、不采集音频、不主动请求网络；只读取桌面项目名并通过系统接口提取图标。没有自动更新下载行为。
 
+## 致谢
+
+本项目借鉴并延用了 [liuxiaogang-com/desktop-icon-billiards](https://github.com/liuxiaogang-com/desktop-icon-billiards) 的核心玩法与设计思路——用真实桌面文件图标打台球、桌面即球台、图标不动而球动。Rust + Tauri 版本是在其 Python 原版（`app.pyw`、`dib/`）基础上的重写与迁移，物理规则、状态机与交互习惯均承自原项目。感谢原作者 LXG 的开源工作。
+
 ## 许可证
 
 [MIT](LICENSE) · Copyright (c) 2025–2026 LXG

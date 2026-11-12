@@ -144,3 +144,9 @@
 - 用户实机反馈：球身颜色太深、白球也偏黑。根因：matcap 以 `multiply` 合成——matcap 球体大面积是中灰（亮度约 0.5），乘法等价于把所有底色乘 0.5，图标球整体发暗、白球被压成灰黑。修复：改为 `overlay` 合成——其中性灰 0.5 恰好不变色，仅亮区提亮、暗区压暗，阴影与菲涅尔边保留且不偏色；白球恢复 `#f6f3e8` 底色的观感。DESIGN.md 球材质段同步改为 overlay 表述并注明"不用 multiply"。
 - `node --check` ×2、三项 Node 回归、`npm test`（10 Rust）、`npm run check`、`cargo fmt --check` 通过；Rust 无改动。
 - 未覆盖：overlay 后的实际亮度观感（是否还需要调 matcap 不透明度或高光强度）待原生验收。
+
+## 冗余代码清理与 README 致谢 · 2026-11-12 · 未发布
+
+- 全面排查残留源码：确认无"效果更好但未启用"的历史实现（手绘球杆、烘焙阴影、multiply 合成均已在替换时删除）；Rust 侧无 `#[allow(dead_code)]`，Clippy 全绿。删除三处小冗余：`draw` 前错位的重复注释、`ballColors[0]`（`'#eee9da'`，映射 `(index-1)%8+1` 从不取 0 号槽，改 8 色数组＋`(index-1)%8`）、`melt` 渐变中 `index === 0` 死分支（该路径仅在 `index > 0 && image` 时执行）；table.js "new random seven" 过时注释改为 fourteen。
+- README 新增"致谢"章节，注明本项目借鉴上游仓库 https://github.com/liuxiaogang-com/desktop-icon-billiards 的玩法与设计，Rust 版为其 Python 原版的迁移重写。
+- `node --check` ×2、三项 Node 回归、`npm test`（10 Rust）、`npm run check`、`cargo fmt --check` 通过；纯清理无行为改动，视觉无变化。

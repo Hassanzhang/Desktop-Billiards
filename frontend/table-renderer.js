@@ -1,6 +1,6 @@
 import { drawFrameSkin } from './frame-skin.js';
 const TAU = Math.PI * 2;
-const ballColors = ['#eee9da', '#e7b42a', '#2166ae', '#b52e32', '#6b408b', '#df762b', '#24765a', '#8c3039', '#22282b'];
+const ballColors = ['#e7b42a', '#2166ae', '#b52e32', '#6b408b', '#df762b', '#24765a', '#8c3039', '#22282b'];
 // Intro fly-in pacing mirrors the legacy Python overlay: staggered per row,
 // one easing curve per ball, arcing sideways off the flight path.
 const INTRO_SECONDS = .8;
@@ -72,7 +72,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
   // separately so stacked balls never read as two layered stickers.
   function drawBallFace(g, index, image, x, y) {
     g.save();
-    circleOn(g, x, y, radius, index === 0 ? '#f6f3e8' : index === black8 ? '#14171a' : ballColors[(index - 1) % 8 + 1]);
+    circleOn(g, x, y, radius, index === 0 ? '#f6f3e8' : index === black8 ? '#14171a' : ballColors[(index - 1) % 8]);
     g.beginPath(); g.arc(x, y, radius, 0, TAU); g.clip();
     if (index === black8) {
       circleOn(g, x, y, radius * .46, '#f5eedc');
@@ -100,7 +100,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
         // Melt the icon disc edge into the ball color so it reads curved.
         const melt = g.createRadialGradient(x, y, inset * .84, x, y, inset);
         melt.addColorStop(0, 'rgba(0,0,0,0)');
-        melt.addColorStop(1, index === 0 ? 'rgba(246,243,232,0.4)' : `${ballColors[(index - 1) % 8 + 1]}66`);
+        melt.addColorStop(1, `${ballColors[(index - 1) % 8]}66`);
         circleOn(g, x, y, inset, melt);
       } else {
         if (index > 8) {
@@ -352,7 +352,6 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
       }
     }
   }
-  // A shrinking ghost plus the legacy nine-spark halo where the icon sank.
   const draw = table => {
     const scale = window.devicePixelRatio || 1;
     if (canvas.width !== Math.round(width * scale) || canvas.height !== Math.round(height * scale)) {

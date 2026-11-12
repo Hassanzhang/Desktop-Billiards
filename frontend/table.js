@@ -57,7 +57,7 @@ canvas.addEventListener('wheel', event => {
 window.addEventListener('contextmenu', event => { event.preventDefault(); cancel(); });
 listen('guide', event => { if (initial) initial.guide = event.payload; });
 listen('restarted', () => {
-  // A restart deals a new random seven: reload items, icons and sprites.
+  // A restart deals a new random fourteen: reload items, icons and sprites.
   introPending = true; prevSunk = null;
   loadTable().catch(error => { $('table-error').textContent = `${error}\n请在控制面板结束本局后重试。`; });
 });
