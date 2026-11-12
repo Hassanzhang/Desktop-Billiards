@@ -1,74 +1,57 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>ball material preview</title>
-<style>body{margin:0;background:#0d1210}canvas{display:block}</style></head>
-<body>
-<canvas id="table"></canvas>
+<html lang="zh-CN"><meta charset="utf-8"><title>原始图标与球体材质回归</title>
+<style>body{margin:0;background:#202421;color:#e2f2ec;font:14px system-ui}p{margin:12px}canvas{display:block;max-width:100%;height:auto}</style>
+<p id="result">运行中…</p><canvas id="table"></canvas>
 <script type="module">
-// Visual harness for the ball material: renders three balls (white, a
-// document-icon ball and a Word-icon ball) through the real renderer so
-// curvature, print adherence and lighting can be compared side by side.
 import { createRenderer } from '../frontend/table-renderer.js';
-
-const makeIcon = draw => {
-  const c = document.createElement('canvas');
-  c.width = c.height = 256;
-  draw(c.getContext('2d'));
-  return c.toDataURL('image/png');
-};
-const round = (g, x, y, w, h, r, fill) => {
-  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r);
-  g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r);
-  g.fillStyle = fill; g.fill();
-};
-// A generic document icon (transparent surroundings) and a Word-style blue icon.
-const docIcon = makeIcon(g => {
-  // Denser, macOS-Pages-like document: header bar, many text lines, badge.
-  g.fillStyle = '#f7f4ec';
-  g.beginPath(); g.moveTo(70, 46); g.lineTo(170, 46); g.lineTo(202, 78); g.lineTo(202, 210);
-  g.lineTo(70, 210); g.closePath(); g.fill();
-  g.fillStyle = '#cfc7b8'; g.beginPath(); g.moveTo(170, 46); g.lineTo(202, 78); g.lineTo(170, 78); g.closePath(); g.fill();
-  g.fillStyle = '#3f6f5e'; g.fillRect(70, 46, 132, 22);
-  g.fillStyle = '#f7f4ec'; g.font = '600 15px system-ui'; g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.fillText('Report', 80, 58);
-  g.fillStyle = '#b9ae9c';
-  [102, 120, 138, 156, 174, 192].forEach((y, i) => g.fillRect(88, y, i % 3 === 2 ? 70 : 96, 7));
-  g.fillStyle = '#b52e32'; g.beginPath(); g.arc(176, 184, 18, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#fff'; g.font = '700 20px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText('A', 176, 185);
+const load = src => new Promise((resolve, reject) => {
+  const image = new Image(); image.onload=()=>resolve(image); image.onerror=reject; image.src=src;
 });
-const wordIcon = makeIcon(g => {
-  round(g, 32, 32, 192, 192, 28, '#2b579a');
-  g.fillStyle = '#fff'; g.font = '700 120px Georgia'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText('W', 128, 134);
-});
-const load = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = src; });
-
-const [doc, word, frame, matcap] = await Promise.all([
-  load(docIcon), load(wordIcon), load('../frontend/assets/table-frame.png'), load('../frontend/assets/ball-matcap.png'),
-]);
-const width = 1560, height = 600, radius = 136;
-const canvas = document.getElementById('table');
-canvas.width = width; canvas.height = height;
-// Slots 0/2/3 hold white, the document icon and the Word icon (all icon
-// balls share the ivory base now); slot 1 is an unused filler hidden via
-// sunk so exactly the three test balls show.
-const initial = {
-  width, height, radius, bounds: [32, 32, width - 32, height - 32],
-  pocket_radius: 48, rail_depth: 24, max_pull: 120, black8: 99, guide: false, wallpaper: '',
+const makeIcon = (w,h,draw) => {
+  const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'));return c.toDataURL();
 };
-const renderer = createRenderer(canvas, initial, [doc, word, doc], null, frame, null, matcap);
-const table = {
-  phase: 'rolling',
-  // Slots 0/2/3 hold white, blue (Word) and red (document); slot 1 is an
-  // unused filler hidden via sunk so exactly the three test balls show.
-  xs: [400, 1500, 780, 1160], ys: [300, 1500, 300, 300],
-  sunk: [false, true, false, false], guide: [],
-  aim: [1, 0], charge: 0, cue_follow: 0, stroke_progress: 0, stroke_origin: [0, 0],
-  pocketed: 0, seconds: 0,
-};
-renderer.draw(table);
-// Keep presenting so screenshots taken at any moment catch a drawn frame.
-const loop = () => { renderer.draw(table); requestAnimationFrame(loop); };
-requestAnimationFrame(loop);
-</script>
-</body></html>
+try {
+  // Non-square icon with a transparent hole; full square with opaque corners;
+  // and a document with transparent margins. None may be cropped or recolored.
+  const [wide,word,doc,frame,matcap] = await Promise.all([
+    load(makeIcon(96,48,g=>{g.fillStyle='#b52e32';g.fillRect(0,0,96,48);g.clearRect(32,12,32,24);})),
+    load(makeIcon(64,64,g=>{g.fillStyle='#2b579a';g.fillRect(0,0,64,64);g.fillStyle='#fff';g.font='bold 40px Georgia';g.fillText('W',10,46);})),
+    load(makeIcon(64,64,g=>{g.fillStyle='#f7f4ea';g.fillRect(16,8,32,48);g.fillStyle='#706045';[22,30,38,46].forEach(y=>g.fillRect(21,y,22,3));})),
+    load('../frontend/assets/table-frame.png'),load('../frontend/assets/ball-matcap.png'),
+  ]);
+  const canvas=document.querySelector('canvas'), results=[];
+  for (const radius of [23,48]) {
+    const width=1200,height=400;
+    const initial={width,height,radius,bounds:[32,32,1168,368],pocket_radius:30,rail_depth:20,max_pull:120,black8:3,guide:false};
+    const renderer=createRenderer(canvas,initial,[wide,word,doc],null,frame,null,matcap);
+    const table={phase:'rolling',xs:[160,380,600,820,1040],ys:[200,200,200,200,200],sunk:[true,true,true,true,true],aim:[1,0],charge:0,cue_follow:0,stroke_progress:0,stroke_origin:[0,0],guide:[],pocketed:0,seconds:0};
+    renderer.draw(table);
+    const g=canvas.getContext('2d'), blank=g.getImageData(0,0,canvas.width,canvas.height);
+    table.sunk.fill(false);renderer.draw(table);
+    const actual=g.getImageData(0,0,canvas.width,canvas.height);
+    const ref=document.createElement('canvas');ref.width=canvas.width;ref.height=canvas.height;
+    const rg=ref.getContext('2d'),scale=window.devicePixelRatio||1;
+    rg.scale(scale,scale);rg.imageSmoothingQuality='high';
+    for(const [index,image] of [[1,wide],[2,word],[4,doc]]) {
+      const fit=radius*2/Math.max(image.naturalWidth,image.naturalHeight);
+      const w=image.naturalWidth*fit,h=image.naturalHeight*fit;
+      rg.drawImage(image,table.xs[index]-w/2,200-h/2,w,h);
+    }
+    const expected=rg.getImageData(0,0,ref.width,ref.height);
+    let samples=0,maxDiff=0;
+    for(let p=0;p<expected.data.length;p+=4) if(expected.data[p+3]===255){
+      samples++;for(let c=0;c<3;c++) maxDiff=Math.max(maxDiff,Math.abs(actual.data[p+c]-expected.data[p+c]));
+    }
+    if(samples<100||maxDiff>2)throw new Error(`原图颜色／轮廓被改变: radius=${radius}, diff=${maxDiff}`);
+    for(const index of [1,4]) {
+      // Transparent center hole / upper margin must reveal the unchanged table.
+      const y=index===1?200:200-radius+2;
+      const p=(Math.round(y*scale)*canvas.width+Math.round(table.xs[index]*scale))*4;
+      if([0,1,2].some(c=>actual.data[p+c]!==blank.data[p+c]))throw new Error('图标透明区域出现底色或材质');
+    }
+    results.push({radius,samples,maxDiff});
+  }
+  document.querySelector('#result').textContent='PASS: 原始比例、方形四角、透明孔洞／留白、原色；白球与黑八保留球体材质';
+  window.ballResults=results;
+} catch(error){document.querySelector('#result').textContent='FAIL: '+error.message;window.ballError=error.stack;}
+</script></html>
