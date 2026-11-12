@@ -17,6 +17,9 @@ let lastInvoke = 0;
 // Clock refresh cadence for the idle loop: while nothing moves we stop the
 // per-frame IPC and only wake up about once a second to update the timer.
 const IDLE_MS = 900;
+// Kill-streak banners, keyed by the asset name the backend announces.
+const ANNOUNCE_ASSETS = ['01_First_Blood', '02_Double_Kill', '03_Triple_Kill', '04_Quadra_Kill', '05_Penta_Kill'];
+const announceImages = new Map();
 function cancel() {
   pointer.cancel = true; pointer.press = null; pointer.shot = null;
   pointer.release = pointer.place = false; pointer.turn = 0;
@@ -56,6 +59,17 @@ canvas.addEventListener('wheel', event => {
 }, { passive: false });
 window.addEventListener('contextmenu', event => { event.preventDefault(); cancel(); });
 listen('guide', event => { if (initial) initial.guide = event.payload; });
+listen('announce', event => {
+  const name = event.payload;
+  const banner = $('announce');
+  const slot = $('announce-img');
+  const image = announceImages.get(name);
+  slot.src = image ? image.src : `assets/${name}.png`;
+  // Restart the animation so back-to-back announcements replay cleanly.
+  banner.classList.remove('show');
+  void banner.offsetWidth;
+  banner.classList.add('show');
+});
 listen('restarted', () => {
   // A restart deals a new random fourteen: reload items, icons and sprites.
   introPending = true; prevSunk = null;
@@ -148,6 +162,11 @@ async function loadTable() {
     loadImage('assets/ball-matcap.png'),
   ]);
   renderer = createRenderer(canvas, initial, images, background, frameAsset, cueAsset, matcapAsset);
+  // Warm the banner assets in the background so the first announcement
+  // never pops in late.
+  for (const name of ANNOUNCE_ASSETS) {
+    loadImage(`assets/${name}.png`).then(image => announceImages.set(name, image)).catch(() => {});
+  }
 }
 try {
   await loadTable();

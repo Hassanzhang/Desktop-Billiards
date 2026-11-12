@@ -51,9 +51,12 @@ fn summary(game: &Game) -> Summary {
         phase: game.table.phase,
         seconds: game.table.seconds,
         total: game.items.len(),
-        pocketed: game.table.balls[1..game.table.black8]
+        pocketed: game
+            .table
+            .balls
             .iter()
-            .filter(|b| b.sunk)
+            .enumerate()
+            .filter(|(i, b)| *i != 0 && *i != game.table.black8 && b.sunk)
             .count(),
     }
 }
@@ -273,6 +276,11 @@ fn frame(
         }
     }
     game.table.step(dt);
+    // Kill-streak announcements travel as events so the overlay shows even
+    // while the frontend is skipping idle frames.
+    if let Some(name) = game.table.announce.take() {
+        window.emit("announce", name).map_err(|e| e.to_string())?;
+    }
     if game.table.phase != Phase::Finished && game.table.phase != Phase::Failed {
         game.table.seconds = game.started.elapsed().as_secs();
     }

@@ -84,10 +84,18 @@ pub struct Table {
     pub charge: f64,
     pub seconds: u64,
     pub guide: Vec<Guide>,
+    /// Consecutive shots that pocketed at least one object ball.
+    pub streak: usize,
+    /// Whether the game's opening pocket has been announced.
+    pub first_blood: bool,
+    /// Announcement asset name for the frontend overlay, consumed by the host.
+    pub announce: Option<&'static str>,
     elapsed: f64,
     wait: f64,
     power: f64,
     pull_origin: Option<[f64; 2]>,
+    /// Object balls already down when the current shot launched.
+    shot_pocketed: usize,
 }
 impl Table {
     /// `count` is the number of icon balls; the white and the black eight
@@ -171,6 +179,10 @@ impl Table {
             wait: 0.,
             power: 0.,
             pull_origin: None,
+            streak: 0,
+            first_blood: false,
+            announce: None,
+            shot_pocketed: 0,
             guide: vec![],
         };
         table.update_guide();
@@ -178,6 +190,10 @@ impl Table {
     }
     fn height(&self) -> f64 {
         self.bounds[3] - self.bounds[1]
+    }
+    /// Object balls (icons plus the black eight) currently down.
+    fn object_pocketed(&self) -> usize {
+        self.balls[1..].iter().filter(|b| b.sunk).count()
     }
     /// Compact per-frame state: one serialization pass, flat f32 ball arrays.
     pub fn snapshot(&self) -> Snapshot {
@@ -189,7 +205,12 @@ impl Table {
             stroke_origin: [self.stroke_origin[0] as f32, self.stroke_origin[1] as f32],
             aim: [self.aim[0] as f32, self.aim[1] as f32],
             seconds: self.seconds,
-            pocketed: self.balls[1..self.black8].iter().filter(|b| b.sunk).count(),
+            pocketed: self
+                .balls
+                .iter()
+                .enumerate()
+                .filter(|(i, b)| *i != 0 && *i != self.black8 && b.sunk)
+                .count(),
             ghost: self.ghost.map(|g| [g[0] as f32, g[1] as f32]),
             guide: self.guide.clone(),
             xs: self.balls.iter().map(|b| b.x as f32).collect(),
@@ -322,6 +343,7 @@ impl Table {
                 self.balls[0].vx = self.aim[0] * self.power;
                 self.balls[0].vy = self.aim[1] * self.power;
                 self.cue_follow = 1.;
+                self.shot_pocketed = self.object_pocketed();
                 self.phase = Phase::Rolling;
                 dt = self.wait - STROKE_SECONDS;
             }
@@ -397,11 +419,15 @@ impl Table {
             }
         }
         // The black eight must be the last ball down: dropping it while any
-        // icon ball is still on the table ends the game immediately.
+        // icon ball is still on the table ends the game immediately. Icons
+        // sit on both sides of the black eight in rack order, so count every
+        // ball except the white and the black eight.
         let black_sunk = self.balls[self.black8].sunk;
-        let icons_left = self.balls[1..self.black8]
+        let icons_left = self
+            .balls
             .iter()
-            .filter(|b| !b.sunk)
+            .enumerate()
+            .filter(|(i, b)| *i != 0 && *i != self.black8 && !b.sunk)
             .count();
         if black_sunk && icons_left > 0 {
             for ball in &mut self.balls {
@@ -422,6 +448,27 @@ impl Table {
             for ball in &mut self.balls {
                 ball.vx = 0.;
                 ball.vy = 0.;
+            }
+            // Resolve the shot: a made object ball extends the streak; a miss
+            // (or a scratch with no object ball down) breaks it. First blood
+            // belongs to the game's opening pocket; afterwards only streaks of
+            // two or more announce, so a broken run must rebuild from a double.
+            let made = self.object_pocketed().saturating_sub(self.shot_pocketed);
+            if made > 0 {
+                self.streak += 1;
+                if !self.first_blood {
+                    self.first_blood = true;
+                    self.announce = Some("01_First_Blood");
+                } else if self.streak >= 2 {
+                    self.announce = Some(match self.streak {
+                        2 => "02_Double_Kill",
+                        3 => "03_Triple_Kill",
+                        4 => "04_Quadra_Kill",
+                        _ => "05_Penta_Kill",
+                    });
+                }
+            } else {
+                self.streak = 0;
             }
             self.charge = 0.;
             self.wait = 0.;
@@ -714,10 +761,13 @@ mod tests {
         t.step(0.05);
         assert_eq!(t.elapsed, elapsed);
         assert!(!t.shoot(0.5), "A failed game must not accept new shots");
-        // Clearing every icon first, then the black eight, wins.
+        // Clearing every icon first, then the black eight, wins. Icons sit on
+        // both sides of the black eight in rack order, so all of them count.
         let mut t = Table::new(1600., 1000., 2);
-        for ball in t.balls[1..t.black8].iter_mut() {
-            ball.sunk = true;
+        for (i, ball) in t.balls.iter_mut().enumerate() {
+            if i != 0 && i != t.black8 {
+                ball.sunk = true;
+            }
         }
         t.phase = Phase::Rolling;
         t.balls[t.black8].x = t.pockets[0][0];
@@ -728,8 +778,10 @@ mod tests {
         assert_eq!(t.phase, Phase::Finished);
         // Icons down but the black eight still out: the game keeps going.
         let mut t = Table::new(1600., 1000., 2);
-        for ball in t.balls[1..t.black8].iter_mut() {
-            ball.sunk = true;
+        for (i, ball) in t.balls.iter_mut().enumerate() {
+            if i != 0 && i != t.black8 {
+                ball.sunk = true;
+            }
         }
         t.phase = Phase::Rolling;
         t.step(0.05);
@@ -901,15 +953,110 @@ mod tests {
         assert_eq!(t.phase, Phase::Ready);
         assert!(!t.balls[0].sunk);
         t.phase = Phase::Rolling;
-        for i in 1..3 {
-            t.balls[i].x = t.pockets[i][0];
-            t.balls[i].y = t.pockets[i][1];
+        for i in 1..t.balls.len() {
+            t.balls[i].x = t.pockets[i % t.pockets.len()][0];
+            t.balls[i].y = t.pockets[i % t.pockets.len()][1];
         }
         t.step(0.01);
         assert_eq!(t.phase, Phase::Finished);
         let elapsed = t.elapsed;
         t.step(0.05);
         assert_eq!(t.elapsed, elapsed);
+    }
+    #[test]
+    fn kill_streak_announcements() {
+        // Fire a shot, then park one object ball in a pocket and bring the
+        // table to rest so the shot resolves without random collisions.
+        fn pocket_shot(t: &mut Table, ball: usize) {
+            t.aim = [1., 0.];
+            assert!(t.shoot(0.9));
+            while t.phase == Phase::Stroke {
+                t.step(0.05);
+            }
+            t.balls[0].vx = 0.;
+            t.balls[0].vy = 0.;
+            t.balls[ball].x = t.pockets[0][0];
+            t.balls[ball].y = t.pockets[0][1];
+            for b in &mut t.balls {
+                b.vx = 0.;
+                b.vy = 0.;
+            }
+            for _ in 0..20 {
+                t.step(0.012);
+            }
+            assert_eq!(t.phase, Phase::Ready);
+        }
+        fn miss_shot(t: &mut Table) {
+            t.aim = [1., 0.];
+            assert!(t.shoot(0.9));
+            while t.phase == Phase::Stroke {
+                t.step(0.05);
+            }
+            for b in &mut t.balls {
+                b.vx = 0.;
+                b.vy = 0.;
+            }
+            for _ in 0..20 {
+                t.step(0.012);
+            }
+            assert_eq!(t.phase, Phase::Ready);
+        }
+        let mut t = Table::new(1600., 1000., 14);
+        pocket_shot(&mut t, 1);
+        assert_eq!(t.streak, 1);
+        assert_eq!(t.announce.take(), Some("01_First_Blood"));
+        pocket_shot(&mut t, 2);
+        assert_eq!(t.announce.take(), Some("02_Double_Kill"));
+        pocket_shot(&mut t, 3);
+        assert_eq!(t.announce.take(), Some("03_Triple_Kill"));
+        pocket_shot(&mut t, 4);
+        assert_eq!(t.announce.take(), Some("04_Quadra_Kill"));
+        pocket_shot(&mut t, 5);
+        assert_eq!(t.announce.take(), Some("05_Penta_Kill"));
+        pocket_shot(&mut t, 6);
+        assert_eq!(
+            t.announce.take(),
+            Some("05_Penta_Kill"),
+            "the streak caps at penta"
+        );
+        miss_shot(&mut t);
+        assert_eq!(t.streak, 0);
+        assert!(t.announce.take().is_none());
+        pocket_shot(&mut t, 7);
+        assert_eq!(t.streak, 1);
+        assert!(
+            t.announce.take().is_none(),
+            "a lone pocket after a break stays silent"
+        );
+        pocket_shot(&mut t, 8);
+        assert_eq!(t.announce.take(), Some("02_Double_Kill"));
+    }
+    #[test]
+    fn win_requires_every_icon_ball() {
+        let mut t = Table::new(1600., 1000., 14);
+        assert_eq!(t.balls.len(), 16);
+        assert_eq!(t.black8, 13);
+        // Twelve of the fourteen icons down: the game keeps going.
+        for i in 1..13 {
+            t.balls[i].sunk = true;
+        }
+        t.phase = Phase::Rolling;
+        t.step(0.05);
+        assert_eq!(t.phase, Phase::Ready);
+        assert_eq!(t.snapshot().pocketed, 12);
+        // The two icons racked behind the black eight must fall too; the
+        // black eight is still out, so the game goes on.
+        t.balls[14].sunk = true;
+        t.balls[15].sunk = true;
+        t.phase = Phase::Rolling;
+        t.step(0.05);
+        assert_eq!(t.phase, Phase::Ready);
+        assert_eq!(t.snapshot().pocketed, 14);
+        // Only then does the black eight end the game.
+        t.balls[t.black8].sunk = true;
+        t.phase = Phase::Rolling;
+        t.step(0.05);
+        assert_eq!(t.phase, Phase::Finished);
     }
     #[test]
     fn placement_rejects_pocket_edges_and_occupied_spots() {

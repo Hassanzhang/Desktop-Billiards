@@ -194,3 +194,10 @@
 - Pillow 只读检查：PNG 为 512×512 RGBA；ICO 包含 16/24/32/48/64/256px 六种尺寸，RGBA；源图副本与用户原图逐字节一致。
 - `npm run build -- --bundles app` 成功，产物为 `src-tauri/target/release/bundle/macos/Desktop Icon Billiards.app`（13.58 MiB）。按包内 Info.plist 查得 `Resources/Desktop Icon Billiards.icns`，其 512px 图层与本轮 PNG 解码后逐像素一致。只更换素材，无代码／配置逻辑变更，未重复无关游戏测试。
 - 未覆盖：Windows 实机图标、macOS Finder／Dock 图标缓存刷新与重启后的实际显示；未发布或安装到系统目录。
+
+## T-023 / T-024 · 2026-11-12 · 连杀播报与清台判定修正（未发布）
+
+- 连杀播报：后端 `Table` 新增 `streak`／`first_blood`／`announce`，击球出杆瞬间记录本杆起始落袋数，球停后比对差值——有进则连杀 +1 并按规则产出播报名（一血仅开局首次；连杀 ≥2 播 `02_Double_Kill`…`05_Penta_Kill`，五杆封顶），无进则清零；结算时经 `window.emit("announce", name)` 发往台面窗口，不受前端空闲跳帧影响。前端 `frontend/table.html` 新增 `.announce` 覆盖层，`style.css` 定义暗角压暗＋`announce-pop` 弹入（0.35 倍旋转→1.12→1.02）＋红色 `drop-shadow` 光晕，2.4 秒淡出；素材 1920×960 透明背景横幅，台面加载后后台预取五张（首杀即时出现）。
+- 清台判定修正：球阵按列推送，黑 8 位于最深列中央（14 球局 black8=13），其后球 14、15 仍是图标球；此前 `icons_left`、快照 `pocketed` 与面板统计都只数 `balls[1..black8]`，导致还剩 2 个图标球时打进黑 8 即判清台、进度卡在 12/14。改为统计除白球与黑 8 外的全部球。既有测试 `black_eight_must_be_pocketed_last`、`scratch_pauses_then_hands_ball_to_player` 原先编码了旧行为，已按"清完所有图标"更新。
+- 回归：Rust 12 项通过（含新增 `kill_streak_announcements`、`win_requires_every_icon_ball`）、Node 3 项通过、`npm run check`、`cargo fmt --check`、`node --check` 全绿。视觉：`tests/announce-preview.html` 冻结动画中段经无头 Chrome 截图确认横幅铺满桌面、暗角与光晕正常。
+- 未覆盖：实机连杀播报的事件时序（前后端 IPC 延迟下的节奏）、横幅在高分屏的缩放观感、玩家中途开新局的播报重置，待原生验收。

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>连杀播报预览</title>
+<link rel="stylesheet" href="../frontend/style.css">
+<style>
+  body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
+       background:radial-gradient(ellipse at 50% 45%,#237864,#0d3b31)}
+  /* Freeze the live animation mid-pop so a screenshot shows the banner. */
+  .announce.show,.announce.show::before{animation-play-state:paused;animation-delay:-.28s}
+  .announce img{animation-play-state:paused;animation-delay:-.28s}
+</style>
+</head>
+<body>
+  <div id="announce" class="announce show"><img id="announce-img" src="../frontend/assets/02_Double_Kill.png" alt=""></div>
+</body>
+</html>

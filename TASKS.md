@@ -64,3 +64,8 @@
 ## 应用图标替换
 
 - [x] T-022 / F-001：以用户 `c046cae9-6ef8-475f-a5ff-d11f9428282e.png` 替换应用图标原图，使用 Tauri 图标工具生成 512×512 RGBA PNG 及多尺寸 ICO，更新既有素材路径；macOS `.app` 构建成功，包内 ICNS 512px 图层与新 PNG 逐像素一致。Windows 实机显示未验收。提交按 `chore(T-022): replace app icon with supplied billiards artwork` 检索。
+
+## 连杀播报
+
+- [x] T-023 / F-002：连杀播报。后端按杆统计连续进球（`Table.streak`／`first_blood`／`announce`）：一血只在开局第一次进球播报一次；连进两杆起播报 `02_Double_Kill`…`05_Penta_Kill`（五杆封顶）；中断（空杆或白球落袋）清零，之后必须重新连进两杆才再播报，单杆静默。结算那一杆通过 `announce` 事件发往台面窗口（`window.emit`，不受前端空闲跳帧影响）。前端新增全屏横幅覆盖层：暗角压暗＋横幅自 0.35 倍旋转弹入＋红光溢出，2.4 秒淡出，素材 `frontend/assets/01_First_Blood.png`…`05_Penta_Kill.png` 后台预取；新增 `tests/announce-preview.html` 冻结动画中段便于截图比对。
+- [x] T-024 / F-002：修正清台判定。球阵按列推送、黑 8 位于最深列中央，其后仍有图标球（14 球局 black8=13，球 14、15 是图标），此前 `icons_left`／快照 `pocketed`／面板统计只数 `balls[1..black8]`——还剩 2 个图标球时打进黑 8 即误判清台、进度卡在 12/14。改为统计除白球与黑 8 外的全部球；新增 `win_requires_every_icon_ball` 回归，并修正两个编码旧行为的既有测试（`black_eight_must_be_pocketed_last`、`scratch_pauses_then_hands_ball_to_player`）。
