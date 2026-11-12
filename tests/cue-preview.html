@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>球杆渲染回归</title>
+<style>body{margin:0;background:#202421;color:#e2f2ec;font:14px system-ui}p{margin:12px}canvas{display:block;max-width:100%;height:auto}</style>
+<p id="result">运行中…</p><canvas id="table"></canvas>
+<script type="module">
+import { createRenderer } from '../frontend/table-renderer.js';
+const load = src => new Promise((resolve, reject) => {
+  const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = src;
+});
+try {
+  const [frame, cue, matcap] = await Promise.all(['table-frame.png', 'cue.png', 'ball-matcap.png'].map(name => load('../frontend/assets/' + name)));
+  const canvas = document.querySelector('canvas');
+  const results = [];
+  for (const height of [400, 900]) {
+    const initial = {width:1000, height, radius:23, bounds:[40,40,960,height-40], pocket_radius:30, rail_depth:20, max_pull:120, black8:1, guide:false};
+    const renderer = createRenderer(canvas, initial, [], null, frame, cue, matcap);
+    for (const angle of [0, Math.PI / 4, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      const table = {phase:'rolling',xs:[650,900],ys:[height/2,height-80],sunk:[false,true],aim:[Math.cos(angle),Math.sin(angle)],charge:0,cue_follow:0,stroke_progress:0,stroke_origin:[650,height/2],guide:[],pocketed:0,seconds:0};
+      renderer.draw(table);
+      const g = canvas.getContext('2d'), baseline = g.getImageData(0,0,canvas.width,canvas.height);
+      table.phase = 'ready'; renderer.draw(table);
+      const drawn = g.getImageData(0,0,canvas.width,canvas.height), scale = window.devicePixelRatio || 1;
+      // Probe the shaft 30px behind the tip, across its perpendicular axis.
+      let thickness = 0;
+      for (let offset=-15; offset<=15; offset+=.5) {
+        const x = Math.round((650-Math.cos(angle)*63-Math.sin(angle)*offset)*scale);
+        const y = Math.round((height/2-Math.sin(angle)*63+Math.cos(angle)*offset)*scale);
+        const p = (y*canvas.width+x)*4;
+        if (Math.max(...[0,1,2].map(c=>Math.abs(drawn.data[p+c]-baseline.data[p+c]))) > 35) thickness += .5;
+      }
+      if (thickness < 5) throw new Error(`杆身过细: height=${height}, angle=${angle}, thickness=${thickness}`);
+      // A point well outside the shaft must remain unchanged (no rectangular halo).
+      const p = (Math.round((height/2-Math.sin(angle)*80+Math.cos(angle)*35)*scale)*canvas.width + Math.round((650-Math.cos(angle)*80-Math.sin(angle)*35)*scale))*4;
+      if ([0,1,2].some(c=>Math.abs(drawn.data[p+c]-baseline.data[p+c])>1)) throw new Error('杆外出现杂色或矩形光照');
+      results.push({height,angle,thickness});
+      table.phase='pull'; table.charge=.5; renderer.draw(table);
+      table.phase='stroke'; table.stroke_progress=1; renderer.draw(table);
+    }
+  }
+  document.querySelector('#result').textContent = 'PASS: 短/高窗口、5 个角度、杆径、杆外透明区、拉杆与触球绘制';
+  window.cueResults = results;
+} catch (error) { document.querySelector('#result').textContent = 'FAIL: ' + error.message; window.cueError = error.stack; }
+</script></html>

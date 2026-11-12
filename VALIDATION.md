@@ -150,3 +150,12 @@
 - 全面排查残留源码：确认无"效果更好但未启用"的历史实现（手绘球杆、烘焙阴影、multiply 合成均已在替换时删除）；Rust 侧无 `#[allow(dead_code)]`，Clippy 全绿。删除三处小冗余：`draw` 前错位的重复注释、`ballColors[0]`（`'#eee9da'`，映射 `(index-1)%8+1` 从不取 0 号槽，改 8 色数组＋`(index-1)%8`）、`melt` 渐变中 `index === 0` 死分支（该路径仅在 `index > 0 && image` 时执行）；table.js "new random seven" 过时注释改为 fourteen。
 - README 新增"致谢"章节，注明本项目借鉴上游仓库 https://github.com/liuxiaogang-com/desktop-icon-billiards 的玩法与设计，Rust 版为其 Python 原版的迁移重写。
 - `node --check` ×2、三项 Node 回归、`npm test`（10 Rust）、`npm run check`、`cargo fmt --check` 通过；纯清理无行为改动，视觉无变化。
+
+
+## T-018 · 2026-11-12 · 球杆粗细、高光与透明边缘（未发布）
+
+- 原素材 2172×724，31,408 像素 alpha=1/255；有效杆身前段约 32px，旧绘制在 400px 高窗口仅约 2.8px 粗。现于 renderer 初始化时清理 alpha ≤8/255 并计算有效像素边界，原 PNG 不变；按有效边界映射到独立 18px 杆径，前段约 7px，保留木头、握把及金属的原有细节；附加亮带按实际杆径收窄。击球状态与长度公式不变。
+- `node --check frontend/table-renderer.js`、`cargo test --manifest-path src-tauri/Cargo.toml physics::tests`（9 项）、`npm test`（10 项 Rust 通过、1 项真实 Finder 测量按既有约定忽略，3 项 Node 通过）、`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check` 均通过。
+- 浏览器：`python3 -m http.server 8765 --bind 127.0.0.1`；本机 Google Chrome headless 打开 `/tests/cue-preview.html`（`--virtual-time-budget=5000 --window-size=1000,1000 --dump-dom`，分别 DPR 1 与 `--force-device-scale-factor=2`）。400/900px 高度 × 5 个角度全部通过：前段可见粗细 ≥5px，杆外 35px 处无杂色／矩形光照，pull/stroke 绘制无异常。截图确认枫木、握把、环饰与杆头方向；使用模拟球桌状态与真实素材，不冒充原生操作验收。测试页面可重复运行，无新增项目依赖。
+- Impeccable detector：无阻断项；对测试页继承文字色报一条 advisory，浏览器实测使用已设定的浅色文字，并非实际黑字。
+- 未覆盖：Tauri 原生桌面窗口中的实际拉杆手势、取消、重开、跨平台与不同壁纸视觉验收；不声称已测量原生帧率或功耗。测试用本地 HTTP 服务验证后关闭。

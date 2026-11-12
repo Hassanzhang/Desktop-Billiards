@@ -167,6 +167,28 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     ctx.globalAlpha = 1;
   };
   // -- cue -----------------------------------------------------------------
+  // Clean once at load time; alpha=1 speckles otherwise enlarge the visible
+  // bounds and survive source-atop lighting. Keep the original asset intact.
+  const cueTexture = document.createElement('canvas');
+  let cueBounds;
+  if (cueAsset) {
+    cueTexture.width = cueAsset.naturalWidth;
+    cueTexture.height = cueAsset.naturalHeight;
+    const textureCtx = cueTexture.getContext('2d');
+    textureCtx.drawImage(cueAsset, 0, 0);
+    const cuePixels = textureCtx.getImageData(0, 0, cueTexture.width, cueTexture.height);
+    let left = cueTexture.width, top = cueTexture.height, right = 0, bottom = 0;
+    for (let y = 0; y < cueTexture.height; y++) {
+      for (let x = 0; x < cueTexture.width; x++) {
+        const a = (y * cueTexture.width + x) * 4 + 3;
+        if (cuePixels.data[a] <= 8) { cuePixels.data[a] = 0; continue; }
+        left = Math.min(left, x); right = Math.max(right, x + 1);
+        top = Math.min(top, y); bottom = Math.max(bottom, y + 1);
+      }
+    }
+    textureCtx.putImageData(cuePixels, 0, 0);
+    cueBounds = [left, top, right - left, bottom - top];
+  }
   let cueLayer = null;
   let cueCtx = null;
   const flashes = [];
@@ -200,7 +222,7 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
   // private layer; the tip is mirrored so the texture's left-hand cue head
   // points at the white ball.
   function updateCueLayer(table, scale) {
-    if (!cueVisible(table)) { cueLayer = null; return; }
+    if (!cueAsset || !cueVisible(table)) { cueLayer = null; return; }
     if (!cueLayer) {
       cueLayer = document.createElement('canvas');
       cueLayer.width = canvas.width; cueLayer.height = canvas.height;
@@ -208,7 +230,9 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     }
     const { white, origin, angle, tipX } = cueGeom(table);
     const length = cueLength();
-    const pad = length * cueAsset.naturalHeight / cueAsset.naturalWidth;
+    // Independent shaft diameter: short windows keep a legible tip and rings.
+    // Bounds describe the actual cue, excluding the large transparent margins.
+    const pad = 18;
     cueCtx.setTransform(scale, 0, 0, scale, 0, 0);
     cueCtx.clearRect(0, 0, width, height);
     cueCtx.save();
@@ -218,7 +242,8 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     // the ball side, the butt end trailing behind.
     cueCtx.translate(tipX, 0);
     cueCtx.scale(-1, 1);
-    cueCtx.drawImage(cueAsset, 0, -pad / 2, length, pad);
+    cueCtx.imageSmoothingQuality = 'high';
+    cueCtx.drawImage(cueTexture, ...cueBounds, 0, -pad / 2, length, pad);
     cueCtx.restore();
     // Screen-space cylinder light: the pole of light stays on the upper edge
     // no matter how the cue rotates, so it never sticks to the texture.
@@ -229,15 +254,18 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
       origin[0] + axis[0] * (tipX - length / 2),
       origin[1] + axis[1] * (tipX - length / 2),
     ];
-    const half = Math.max(3, length * .03);
+    const half = pad / 2;
     const g = cueCtx.createLinearGradient(
       center[0] - up[0] * half, center[1] - up[1] * half,
       center[0] + up[0] * half, center[1] + up[1] * half,
     );
-    g.addColorStop(0, '#ffffff4d');
-    g.addColorStop(.3, '#ffffff12');
-    g.addColorStop(.55, '#ffffff00');
-    g.addColorStop(1, '#0000002b');
+    // A narrow upper-edge sheen preserves the baked wood/metal/linen detail.
+    g.addColorStop(0, '#00000020');
+    g.addColorStop(.38, '#ffffff00');
+    g.addColorStop(.58, '#ffffff08');
+    g.addColorStop(.68, '#fff4df66');
+    g.addColorStop(.76, '#ffffff12');
+    g.addColorStop(1, '#ffffff00');
     cueCtx.globalCompositeOperation = 'source-atop';
     cueCtx.fillStyle = g;
     const corners = [];
