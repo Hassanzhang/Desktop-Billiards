@@ -20,6 +20,7 @@ const IDLE_MS = 900;
 // Kill-streak banners, keyed by the asset name the backend announces.
 const ANNOUNCE_ASSETS = ['01_First_Blood', '02_Double_Kill', '03_Triple_Kill', '04_Quadra_Kill', '05_Penta_Kill'];
 const announceImages = new Map();
+const TAU_2PI = Math.PI * 2;
 function cancel() {
   pointer.cancel = true; pointer.press = null; pointer.shot = null;
   pointer.release = pointer.place = false; pointer.turn = 0;
@@ -65,11 +66,25 @@ listen('announce', event => {
   const slot = $('announce-img');
   const image = announceImages.get(name);
   slot.src = image ? image.src : `assets/${name}.png`;
-  // Restart the animation so back-to-back announcements replay cleanly.
+  // Restart every beat so back-to-back announcements replay cleanly.
   banner.classList.remove('show');
+  document.body.classList.remove('announce-active');
   void banner.offsetWidth;
   banner.classList.add('show');
+  document.body.classList.add('announce-active');
 });
+// Shards burst outward from the title on a fixed spread, so every banner
+// breaks the same way.
+for (let i = 0; i < 18; i++) {
+  const shard = document.createElement('i');
+  shard.className = 'announce-shard';
+  const angle = (i / 18) * TAU_2PI + (i % 3) * .18;
+  const distance = 170 + (i % 5) * 48;
+  shard.style.setProperty('--dx', `${Math.round(Math.cos(angle) * distance)}px`);
+  shard.style.setProperty('--dy', `${Math.round(Math.sin(angle) * distance * .72)}px`);
+  shard.style.setProperty('--rot', `${Math.round(angle * 180 / Math.PI)}deg`);
+  $('announce').appendChild(shard);
+}
 listen('restarted', () => {
   // A restart deals a new random fourteen: reload items, icons and sprites.
   introPending = true; prevSunk = null;

@@ -211,3 +211,12 @@
 - macOS 本地 `npm test`：12 项 Rust 测试通过，1 项真实 Finder 性能探针按设计忽略；桌面加载、台面输入、木框映射 3 项 Node 回归通过。`npm run check`（Clippy 全目标）、`cargo fmt --manifest-path src-tauri/Cargo.toml --check`、`node --check frontend/table-renderer.js`、`git diff --check` 均通过。
 - 当前说明文档链接与前端字面量素材路径检查通过。`src-tauri/target/`、`node_modules/`、已有 dist 应用及其余缓存均未删除。
 - 未重新构建安装包，未执行浏览器像素回归、原生桌面操作或 Windows 编译／验收；这次清理不构成这些验收已完成的证据。
+
+## T-026：五段连杀播报（2026-11-12）
+
+- Chrome headless，1440×900 和 900×600，DPR 1；通过本地 HTTP 服务打开 `tests/announce-preview.html?check=1`。以浏览器 Web Animations API 定格真实 CSS 动画，检查 0.1／0.3／0.55／0.75／1.5／1.8／2.1／2.3／2.5 秒的计算透明度、变换、文字落定、碎片爆发、定格尺寸、分向退出、清场、输入穿透和重播。两尺寸均 PASS；Emulation 设置 `prefers-reduced-motion: reduce` 后同页自检 PASS。
+- Chrome 实时点击重播：约 0.6 秒标题 opacity=1、scale≈1.35，2.5 秒结束后标题与遮罩 opacity=0。1440×900／900×600 的 1.6 与 2.3 秒截图已查看；图片沿用用户素材。记录在 `/tmp/billiards-announce-desktop-1.6.png`、`/tmp/billiards-announce-compact-2.3.png` 等临时截图。
+- 修复检查发现的现有选择器 `.announce.show .announce img`：它要求嵌套第二个 `.announce`，与实际 DOM 不符；改为 `.announce.show img`，实测标题动画存在并可重播。
+- `npm test`：12 Rust 测试通过，1 个真实 Finder 性能探针按设计忽略，3 个 Node 回归通过；`npm run check`、`cargo fmt --manifest-path src-tauri/Cargo.toml --check`、`git diff --check` 通过。
+- Impeccable detector 已运行（exit 2，有视觉告警）：静态隐藏播报图片、裁切屏幕外演出图形属于时间线设计；红黑／米白播报色已补充 DESIGN.md。其余既有界面颜色／字号建议不在本次动效修改范围，不将检测描述为零告警通过。
+- 以上为真实 Chrome 的预览层检查；未启动真实 Finder／Explorer 游戏，未测原生帧率，未重构建应用包。原生窗口操作与系统 WebView 观感仍待验收。

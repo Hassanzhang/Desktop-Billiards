@@ -3,14 +3,95 @@
 <head><meta charset="utf-8"><title>连杀播报预览</title>
 <link rel="stylesheet" href="../frontend/style.css">
 <style>
-  body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
-       background:radial-gradient(ellipse at 50% 45%,#237864,#0d3b31)}
-  /* Freeze the live animation mid-pop so a screenshot shows the banner. */
-  .announce.show,.announce.show::before{animation-play-state:paused;animation-delay:-.28s}
-  .announce img{animation-play-state:paused;animation-delay:-.28s}
+  body{margin:0;height:100vh;overflow:hidden;background:#134d40}
+  /* Stand-in for the table canvas so the shake beat has something to move. */
+  .fake-table{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,#237864,#134d40)}
+  body.announce-active .fake-table{animation:announce-table-shake 2.5s linear both}
+  .preview-controls{position:fixed;left:16px;bottom:16px;z-index:20;display:flex;gap:12px;align-items:center}
+  #result{font:12px system-ui;color:#e2f2ec}
+  @media(prefers-reduced-motion:reduce){body.announce-active .fake-table{animation:none}}
 </style>
 </head>
 <body>
-  <div id="announce" class="announce show"><img id="announce-img" src="../frontend/assets/02_Double_Kill.png" alt=""></div>
+  <div class="fake-table"></div>
+  <div class="preview-controls"><button id="replay">重播</button><span id="result" role="status">2.5 秒播报 · URL 加 ?t=1.6 可定格</span></div>
+  <div id="announce" class="announce">
+    <div class="announce-flash"></div>
+    <div class="announce-shade"></div>
+    <div class="announce-wedge announce-wedge-left"></div>
+    <div class="announce-wedge announce-wedge-right"></div>
+    <div class="announce-wave"></div>
+    <div class="announce-title"><img id="announce-img" src="../frontend/assets/05_Penta_Kill.png" alt=""></div>
+  </div>
+<script>
+  // Production CSS shares one 2.5s clock; ?t=1.6 freezes every layer together.
+  const banner = document.getElementById('announce');
+  for (let i = 0; i < 18; i++) {
+    const shard = document.createElement('i');
+    shard.className = 'announce-shard';
+    const angle = (i / 18) * Math.PI * 2 + (i % 3) * .18;
+    const distance = 170 + (i % 5) * 48;
+    shard.style.setProperty('--dx', `${Math.round(Math.cos(angle) * distance)}px`);
+    shard.style.setProperty('--dy', `${Math.round(Math.sin(angle) * distance * .72)}px`);
+    shard.style.setProperty('--rot', `${Math.round(angle * 180 / Math.PI)}deg`);
+    banner.appendChild(shard);
+  }
+  const play = () => {
+    banner.classList.remove('show');
+    document.body.classList.remove('announce-active');
+    void banner.offsetWidth;
+    banner.classList.add('show');
+    document.body.classList.add('announce-active');
+  };
+  document.getElementById('replay').onclick = play;
+  const seek = seconds => {
+    for (const animation of document.getAnimations()) {
+      animation.pause();
+      animation.currentTime = seconds * 1000;
+    }
+  };
+  const params = new URLSearchParams(location.search);
+  const ready = async () => {
+    await document.getElementById('announce-img').decode();
+    play();
+    if (params.has('check')) {
+      const style = selector => getComputedStyle(document.querySelector(selector));
+      const opacity = selector => Number(style(selector).opacity);
+      const matrix = selector => new DOMMatrixReadOnly(style(selector).transform);
+      const assert = (ok, message) => { if (!ok) throw new Error(message); };
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      seek(.1);
+      assert(reduced ? opacity('.announce-flash') === 0 : opacity('.announce-flash') > 0, 'flash / reduced motion');
+      seek(.3);
+      assert(opacity('.announce-shade') === 1, 'background must be dark');
+      assert(reduced || matrix('.announce-wedge-left').m41 < 0, 'left wedge enters from left');
+      seek(.55);
+      assert(reduced || matrix('#announce-img').a > 1.5, 'title starts oversized');
+      seek(.75);
+      assert(reduced || Math.abs(matrix('#announce-img').a - 1) < .1, 'impact must finish quickly');
+      assert(reduced || opacity('.announce-shard') > .5, 'shards burst at impact');
+      for (const time of [1.5, 1.8, 2.1]) {
+        seek(time);
+        assert(opacity('#announce-img') === 1, 'title must remain legible through hold');
+        assert(reduced || matrix('#announce-img').a === 1, 'hold must lock title scale');
+      }
+      seek(2.3);
+      assert(opacity('#announce-img') < 1, 'exit starts at 2.1 seconds');
+      assert(reduced || matrix('.announce-wedge-left').m41 < 0, 'left wedge exits outward');
+      assert(reduced || matrix('.announce-wedge-right').m41 > 0, 'right wedge exits outward');
+      seek(2.5);
+      for (const selector of ['#announce-img', '.announce-flash', '.announce-shade', '.announce-wedge-left', '.announce-wedge-right', '.announce-wave', '.announce-shard']) {
+        assert(opacity(selector) === 0, 'layer must disappear: ' + selector);
+      }
+      assert(style('.announce').pointerEvents === 'none', 'overlay must not block input');
+      play(); seek(.55);
+      assert(reduced || matrix('#announce-img').a > 1.5, 'replay must restart animation');
+      document.getElementById('result').textContent = 'PASS: five phases, impact, hold, split exit, replay, input passthrough' + (reduced ? ', reduced motion' : '');
+    } else if (params.has('t')) {
+      seek(Math.max(0, Math.min(2.5, Number(params.get('t')) || 0)));
+    }
+  };
+  ready().catch(error => { document.getElementById('result').textContent = 'FAIL: ' + error.message; });
+</script>
 </body>
 </html>

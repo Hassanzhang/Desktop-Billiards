@@ -42,3 +42,7 @@ Cargo 开发／测试配置为 `debug = 0`、`incremental = false`，发布配�
 Finder 项目名称和 URL 各一次批量查询，替代逐项目跨进程调用。AppKit 将每个图标直接绘制到 64×64 RGBA 位图后编码 PNG，避免 TIFF 的多分辨率表示与大图编码。`prepare_desktop` 只返回图标数量，真实图标暂存 Rust；`open_game` 消费已准备数据，`initial` 才将图标交付台面。没有图标数据经控制面板来回传输，也没有试玩参数／示例图标分支。
 
 可选实机探针：`cargo test --manifest-path src-tauri/Cargo.toml native_desktop_startup_profile -- --ignored --nocapture`，读取真实 Finder 并输出耗时、数量和 PNG base64 总字节数，不输出文件名；默认测试跳过该系统依赖检查。
+
+## 连杀播报（T-026）
+
+`announce` 事件复用既有 PNG，前端通过移除／恢复 `show`、`announce-active` 重启整段 CSS 动画。所有层共用 2.5 秒时间线，碎片在 0.7 秒标题落定时同步爆发，取消独立延迟；1.5～2.1 秒标题尺寸锁定，2.1 秒后文字与两侧色块分向退出。`prefers-reduced-motion: reduce` 下仅保留标题／遮罩淡入淡出，关闭白闪、震屏和空间运动。`tests/announce-preview.html` 默认播放，支持重播按钮、`?t=1.6` 定格、`?check=1` 浏览器计算样式行为自检。
