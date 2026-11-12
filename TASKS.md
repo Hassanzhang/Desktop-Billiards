@@ -16,6 +16,8 @@
 
 - [x] T-015 / F-002：黑八规则。`pick_seven` 每局从桌面池随机抽 7 个图标（时钟种子 xorshift，池保留于 `Game.pool` 供重开重抽）；黑 8 渲染为黑色数字球并占据球阵最深列中央（`Table.black8`）；先清图标球再进黑 8 获胜，黑 8 提前落袋进入 `Phase::Failed` 并冻结计时；重开经 `restarted` 事件让台面重拉素材并重放动画。新增 `black_eight_must_be_pocketed_last` 测试；`npm test`、`npm run check`、`cargo fmt --check` 通过；实机发球随机性与失败提示待原生验收。
 
+- [x] T-016 / F-005：球杆贴图化。`assets/cue.png`（用户素材，透明背景、杆头朝左）替换手绘梯形杆：贴图按 aim 旋转，亮带用屏幕空间 `source-atop` 渐变固定在上沿不随杆旋转；布面接触影（blur 3px、alpha 0.13、下偏 2.5px）画在球之下；叠放先球后杆，杆头经 `destination-out` 只在与白球重叠段裁开；收势从 12px 穿球改为 4px 短随动；stroke→rolling 瞬间在触点闪 (130ms) 微光点。`node --check`、Node 回归通过；原生视觉待实机验收。
+
 ## 待验收
 
 - [ ] T-004 / F-001～F-004：完整跨平台原生操作、Finder 权限、Windows 安装包、DPI 与进程退出验收。macOS 控制面板和试玩台面已打开；其余平台／操作证据与阻塞见 [VALIDATION.md](VALIDATION.md)。

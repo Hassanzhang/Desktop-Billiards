@@ -7,7 +7,7 @@ const INTRO_SECONDS = .8;
 const INTRO_STAGGER = .06;
 const SINK_SECONDS = .55;
 
-export function createRenderer(canvas, initial, images, background, frameAsset) {
+export function createRenderer(canvas, initial, images, background, frameAsset, cueAsset) {
   const ctx = canvas.getContext('2d');
   const { width, height, radius } = initial;
   const black8 = initial.black8 ?? images.length + 1;
@@ -21,11 +21,6 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
   const effects = [];
   const circleOn = (g, x, y, r, fill) => {
     g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = fill; g.fill();
-  };
-  const path = points => {
-    ctx.beginPath(); ctx.moveTo(...points[0]);
-    for (const point of points.slice(1)) ctx.lineTo(...point);
-    ctx.closePath();
   };
   const line = (a, b, color, lineWidth = 1.5) => {
     ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
@@ -126,6 +121,129 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     ctx.drawImage(sprite, x - scaled / 2, y - scaled / 2, scaled, scaled);
     ctx.globalAlpha = 1;
   };
+  // -- cue -----------------------------------------------------------------
+  let cueLayer = null;
+  let cueCtx = null;
+  const flashes = [];
+  const flash = (x, y, aim) => flashes.push({ x, y, aim: [aim[0], aim[1]], start: performance.now() });
+  const cueLength = () => Math.min(400, initial.height * .48);
+  const cueVisible = table =>
+    (['ready', 'pull', 'stroke'].includes(table.phase) || table.cue_follow > 0) && !table.sunk[0];
+  const cueGeom = table => {
+    let gap = 10 + table.charge * initial.max_pull;
+    if (table.phase === 'stroke') gap *= 1 - table.stroke_progress ** 1.6;
+    // Short follow-through: the tip presses a few px past contact, it never
+    // rides through the ball.
+    if (table.cue_follow > 0) gap = -4 * table.cue_follow;
+    const origin = table.phase === 'stroke' ? table.stroke_origin : [table.xs[0], table.ys[0]];
+    const angle = Math.atan2(table.aim[1], table.aim[0]);
+    return { origin, angle, tipX: -radius - gap };
+  };
+  // A faint blurred streak on the cloth, offset screen-down; drawn beneath
+  // the balls so they occlude it like real felt shading.
+  function drawContactShadow(table) {
+    if (!cueVisible(table)) return;
+    const { origin, angle, tipX } = cueGeom(table);
+    const length = cueLength();
+    const pad = length * cueAsset.naturalHeight / cueAsset.naturalWidth;
+    ctx.save();
+    ctx.filter = 'blur(3px)';
+    ctx.translate(origin[0], origin[1] + 2.5);
+    ctx.rotate(angle);
+    ctx.fillStyle = '#00000022';
+    ctx.fillRect(tipX - length, -pad / 2, length, pad);
+    ctx.restore();
+  }
+  function drawCueLayer(table, scale) {
+    if (!cueVisible(table)) return;
+    if (!cueLayer) {
+      cueLayer = document.createElement('canvas');
+      cueLayer.width = canvas.width; cueLayer.height = canvas.height;
+      cueCtx = cueLayer.getContext('2d');
+    }
+    const { white, origin, angle, tipX } = cueGeom(table);
+    const length = cueLength();
+    const pad = length * cueAsset.naturalHeight / cueAsset.naturalWidth;
+    cueCtx.setTransform(scale, 0, 0, scale, 0, 0);
+    cueCtx.clearRect(0, 0, width, height);
+    cueCtx.save();
+    cueCtx.translate(...origin);
+    cueCtx.rotate(angle);
+    // Texture tip points at the ball; the shaft keeps its own baked detail.
+    cueCtx.drawImage(cueAsset, tipX - length, -pad / 2, length, pad);
+    cueCtx.restore();
+    // Screen-space cylinder light: the pole of light stays on the upper edge
+    // no matter how the cue rotates, so it never sticks to the texture.
+    const axis = [Math.cos(angle), Math.sin(angle)];
+    let up = [-axis[1], axis[0]];
+    if (up[1] > 0) up = [-up[0], -up[1]];
+    const center = [
+      origin[0] + axis[0] * (tipX - length / 2),
+      origin[1] + axis[1] * (tipX - length / 2),
+    ];
+    const half = Math.max(3, length * .03);
+    const g = cueCtx.createLinearGradient(
+      center[0] - up[0] * half, center[1] - up[1] * half,
+      center[0] + up[0] * half, center[1] + up[1] * half,
+    );
+    g.addColorStop(0, '#ffffff4d');
+    g.addColorStop(.3, '#ffffff12');
+    g.addColorStop(.55, '#ffffff00');
+    g.addColorStop(1, '#0000002b');
+    cueCtx.globalCompositeOperation = 'source-atop';
+    cueCtx.fillStyle = g;
+    const corners = [];
+    for (const ax of [tipX, tipX - length]) {
+      for (const side of [1, -1]) {
+        corners.push([
+          origin[0] + axis[0] * ax + up[0] * side * pad / 2,
+          origin[1] + axis[1] * ax + up[1] * side * pad / 2,
+        ]);
+      }
+    }
+    const xsCorner = corners.map(c => c[0]);
+    const ysCorner = corners.map(c => c[1]);
+    cueCtx.fillRect(
+      Math.min(...xsCorner) - 2, Math.min(...ysCorner) - 2,
+      Math.max(...xsCorner) - Math.min(...xsCorner) + 4,
+      Math.max(...ysCorner) - Math.min(...ysCorner) + 4,
+    );
+    // The tip only yields where it actually overlaps the white ball.
+    cueCtx.globalCompositeOperation = 'destination-out';
+    cueCtx.beginPath(); cueCtx.arc(white.x, white.y, radius, 0, TAU); cueCtx.fill();
+    cueCtx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(cueLayer, 0, 0, width, height);
+  }
+  // A tiny bright dot where the tip meets the white at the instant of contact.
+  function drawFlashes(now) {
+    for (let i = flashes.length - 1; i >= 0; i--) {
+      const f = flashes[i];
+      const t = (now - f.start) / 130;
+      if (t >= 1) { flashes.splice(i, 1); continue; }
+      const px = f.x + f.aim[0] * radius * .92;
+      const py = f.y + f.aim[1] * radius * .92;
+      const r = radius * .3;
+      const a = .6 * (1 - t);
+      const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, `rgba(255,244,214,${a})`);
+      g.addColorStop(1, 'rgba(255,244,214,0)');
+      circleOn(ctx, px, py, r, g);
+    }
+  }
+  // Power arc around the cue ball while pulling: position and color both
+  // track the charge so the release moment reads at a glance.
+  function drawChargeArc(table) {
+    if (table.phase !== 'pull' || table.charge <= .01 || table.sunk[0]) return;
+    const track = radius + 7;
+    const white = { x: table.xs[0], y: table.ys[0] };
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#f2edce2e';
+    ctx.beginPath(); ctx.arc(white.x, white.y, track, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = chargeColor(table.charge);
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(white.x, white.y, track, -Math.PI / 2, -Math.PI / 2 + TAU * table.charge); ctx.stroke();
+    ctx.lineCap = 'butt';
+  }
   // All balls live on one cached layer, redrawn only when a ball actually moved
   // or sank: while aiming, a frame costs two blits plus cue and guide lines.
   function drawBalls(table, scale) {
@@ -185,44 +303,11 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
       }
     }
   }
-  function drawCue(table) {
-    if ((!['ready', 'pull', 'stroke'].includes(table.phase) && !table.cue_follow) || table.sunk[0]) return;
-    const white = { x: table.xs[0], y: table.ys[0] };
-    let gap = 10 + table.charge * initial.max_pull;
-    if (table.phase === 'stroke') gap *= 1 - table.stroke_progress ** 1.6;
-    if (table.cue_follow > 0) gap = -12 * (1 - table.cue_follow);
-    const origin = table.phase === 'stroke' ? table.stroke_origin : [white.x, white.y];
-    const tip = -radius - gap;
-    const length = Math.min(400, initial.height * .48);
-    ctx.save(); ctx.translate(...origin); ctx.rotate(Math.atan2(table.aim[1], table.aim[0]));
-    ctx.shadowColor = '#00110c80'; ctx.shadowOffsetY = 3; ctx.shadowBlur = 3;
-    const shaft = ctx.createLinearGradient(0, -6, 0, 6);
-    shaft.addColorStop(0, '#79532d'); shaft.addColorStop(.35, '#edcf94'); shaft.addColorStop(.7, '#cba565'); shaft.addColorStop(1, '#61432b');
-    path([[tip - length, -6], [tip - 18, -2.8], [tip - 18, 2.8], [tip - length, 6]]);
-    ctx.fillStyle = shaft; ctx.fill(); ctx.shadowColor = 'transparent';
-    ctx.fillStyle = '#443025'; ctx.fillRect(tip - length, -5.5, length * .26, 11);
-    for (let i = 0; i < 12; i++) line([tip - length + 8 + i * 6, -5], [tip - length + 6 + i * 6, 5], '#ad93624d', .6);
-    ctx.fillStyle = '#1d211e'; ctx.fillRect(tip - length - 6, -6, 7, 12);
-    ctx.fillStyle = '#e5dfc7'; ctx.fillRect(tip - 18, -2.8, 14, 5.6);
-    ctx.fillStyle = '#5397aa'; ctx.fillRect(tip - 4, -2.8, 4, 5.6);
-    ctx.restore();
-    // Power arc around the cue ball while pulling: position and color both
-    // track the charge so the release moment reads at a glance.
-    if (table.phase === 'pull' && table.charge > .01) {
-      const track = radius + 7;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#f2edce2e';
-      ctx.beginPath(); ctx.arc(white.x, white.y, track, 0, TAU); ctx.stroke();
-      ctx.strokeStyle = chargeColor(table.charge);
-      ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.arc(white.x, white.y, track, -Math.PI / 2, -Math.PI / 2 + TAU * table.charge); ctx.stroke();
-      ctx.lineCap = 'butt';
-    }
-  }
+  // A shrinking ghost plus the legacy nine-spark halo where the icon sank.
   const draw = table => {
     const scale = window.devicePixelRatio || 1;
     if (canvas.width !== Math.round(width * scale) || canvas.height !== Math.round(height * scale)) {
-      canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale); surface = null; layer = null;
+      canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale); surface = null; layer = null; cueLayer = null;
     }
     if (!baked || baked.scale !== scale) { baked = { scale, sprites: bake(scale) }; layer = null; }
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -247,9 +332,14 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
         ctx.strokeStyle = '#f5efced9'; ctx.lineWidth = 1.5; ctx.stroke();
       }
     }
-    drawCue(table);
+    // Balls first, cue above them: the tip is clipped only where it overlaps
+    // the white, so contact reads as the tip pressing into the ball edge.
+    drawContactShadow(table);
     drawBalls(table, scale);
+    drawCueLayer(table, scale);
+    drawChargeArc(table);
     drawSinkEffects(now);
+    drawFlashes(now);
   };
   const playIntro = table => {
     intro = {
@@ -263,5 +353,5 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     };
   };
   const sink = (index, x, y) => effects.push({ index, x, y, start: performance.now() });
-  return { draw, playIntro, sink, get busy() { return intro !== null || effects.length > 0; } };
+  return { draw, playIntro, sink, flash, get busy() { return intro !== null || effects.length > 0 || flashes.length > 0; } };
 }

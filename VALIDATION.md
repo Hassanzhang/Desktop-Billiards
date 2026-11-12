@@ -118,3 +118,9 @@
 - 用户规则：每局从桌面随机抽 7 个图标作为目标球，黑 8 固定在球阵最深列中央；先清完 7 个图标球，最后打进黑 8 获胜；黑 8 提前落袋立即判负。实现：`open_game` 校验池 ≥7 后 `pick_seven`（时钟种子 xorshift Fisher–Yates）抽 7，池保留在 `Game.pool`，`restart` 重抽并通过 `restarted` 让台面重拉 `initial`／图标素材；`Table::new` 以 `rack = count + 1` 布阵并让黑 8 占据最深列中央（`Table.black8`）；`step` 中黑 8 落袋且图标未清完 → `Phase::Failed`（清零速度、计时冻结、拒绝新击球）；图标全清后黑 8 落袋 → `Finished`。快照/摘要的 `pocketed` 只计图标球；黑 8 前端专用渲染（黑面＋米白数字 8），文件名浮层跳过黑 8。
 - `npm test`：10 项 Rust 测试（新增 `black_eight_must_be_pocketed_last`：提前落袋判负冻结、清完后落袋获胜、只剩黑八时维持 Ready）与 3 个 Node 回归通过；`npm run check`（Clippy `-D warnings`）、`cargo fmt --check`、`node --check` 三个前端文件通过。`chain_shot` 测试将黑 8 移出击球线以保持链条语义。
 - 未覆盖：随机发球的视觉随机性、黑 8 渲染与失败提示、不足 7 个图标的真实桌面错误路径均待原生验收（沿用 T-014/T-009 边界）。
+
+## T-016 · 2026-11-12 · 球杆贴图化与光照分层（未发布）
+
+- 用户诉求：杆身不再用梯形＋斜线充木头；改用其提供的 `frontend/assets/cue.png`（2172×724、透明背景、已含枫木纹／亚麻握把／环饰／铜箍／皮革头，杆头朝图左）。实现：贴图按 `aim` 旋转绘制（长度沿用 `min(400, 台面高 × 0.48)`，等比缩放保留图内细节）；屏幕空间圆柱光用独立 cue 图层 `source-atop` 叠加，渐变轴取垂直于杆轴且朝屏幕上方的方向，亮带固定上沿不随杆旋转；布面接触影（`blur(3px)`、alpha 0.13、屏幕向下 2.5px、画于球之下）；叠放先球后杆，`destination-out` 只裁掉与白球重叠的杆头段；收势从 `-12×(1-cue_follow)` 改为 `-4×cue_follow` 短随动；stroke→rolling 瞬间触发触点闪光（半径 `radius×0.3`、alpha 0.6、130ms）。力度弧与随动参数同步进 DESIGN.md。
+- `node --check` 三个前端文件、`tests/table-input.mjs`、`tests/frame-skin.mjs` 通过；Rust 无改动，物理回归沿用上轮结果。
+- 未覆盖：贴图杆的实拍视觉（旋转方向、光带位置、裁切开合、闪光大小）、`ctx.filter` 在系统 WebKit 的模糊效果均需原生验收；模拟桩不渲染贴图。

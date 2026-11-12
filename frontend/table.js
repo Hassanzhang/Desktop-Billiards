@@ -11,6 +11,7 @@ let renderer = null;
 let lastScore = '';
 let lastHint = '';
 let prevSunk = null;
+let prevPhase = null;
 let introPending = true;
 let lastInvoke = 0;
 // Clock refresh cadence for the idle loop: while nothing moves we stop the
@@ -120,6 +121,11 @@ async function frame() {
         }
       }
       prevSunk = lastTable.sunk;
+      // The instant the stroke launches the white, flash a tiny contact dot.
+      if (prevPhase === 'stroke' && lastTable.phase === 'rolling' && !lastTable.sunk[0]) {
+        renderer.flash(lastTable.xs[0], lastTable.ys[0], lastTable.aim);
+      }
+      prevPhase = lastTable.phase;
       renderer.draw(lastTable); updateControls(lastTable);
     }
     requestAnimationFrame(frame);
@@ -136,8 +142,11 @@ async function loadTable() {
   initial = await invoke('initial');
   const background = initial.wallpaper ? await loadImage(initial.wallpaper).catch(() => null) : null;
   const images = await Promise.all(initial.items.map(item => item.image ? loadImage(item.image).catch(() => { throw new Error(`图标加载失败：${item.name}`); }) : null));
-  const frameAsset = await loadImage('assets/table-frame.png');
-  renderer = createRenderer(canvas, initial, images, background, frameAsset);
+  const [frameAsset, cueAsset] = await Promise.all([
+    loadImage('assets/table-frame.png'),
+    loadImage('assets/cue.png'),
+  ]);
+  renderer = createRenderer(canvas, initial, images, background, frameAsset, cueAsset);
 }
 try {
   await loadTable();

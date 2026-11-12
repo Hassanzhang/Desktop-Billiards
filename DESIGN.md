@@ -142,7 +142,9 @@ components:
 
 ### Table / Cue
 
-ready 时移动瞄准；按住锁定方向并向后拉杆（`pull` 阶段），松手进入 stroke。球杆长度为 `min(400, initial.height × 0.48)`；后拉距离为 `10 + charge × max_pull`，最大后拉来自 `clamp(80, 台面高度 × 0.24, 180)`。stroke 阶段球杆间距按 `1 - stroke_progress^1.6` 收敛，前送总时长 (0.12s)，末端才使母球运动。进入 rolling 后保留 (70ms) 收势：`cue_follow` 从 1 衰减到 0，杆头间距为 `-12 × (1 - cue_follow)`。stroke 与收势均锚定击球时的 `stroke_origin`，避免球杆跟随移动母球；ready 与 pull 阶段锚定当前母球。球杆在 ready / pull / stroke 或 cue_follow 有效且母球未入袋时绘制。按下拉杆保持已有 aim，保留此前方向键或滚轮微调结果。
+ready 时移动瞄准；按住锁定方向并向后拉杆（`pull` 阶段），松手进入 stroke。球杆使用高分辨率贴图 `assets/cue.png`（枫木杆身、亚麻握把、环饰、铜箍与皮革头都在图内，杆头朝图左），长度为 `min(400, initial.height × 0.48)`，按 `aim` 方向整体旋转；后拉距离为 `10 + charge × max_pull`，最大后拉来自 `clamp(80, 台面高度 × 0.24, 180)`。stroke 阶段球杆间距按 `1 - stroke_progress^1.6` 收敛，前送总时长 (0.12s)，末端才使母球运动。进入 rolling 后保留 (70ms) 短随动：`cue_follow` 从 1 衰减到 0，杆头最多越过触点 (4px)，不整根穿球。stroke 与随动均锚定击球时的 `stroke_origin`，避免球杆跟随移动母球；ready 与 pull 阶段锚定当前母球。球杆在 ready / pull / stroke 或 cue_follow 有效且母球未入袋时绘制。按下拉杆保持已有 aim，保留此前方向键或滚轮微调结果。
+
+球杆分层绘制：布面接触影（模糊 (3px)、透明度 0.13、屏幕向下偏移 (2.5px)）画在球之下；球画在杆之下；杆先在独立图层贴图旋转，再叠一道屏幕空间的圆柱光——亮带固定在屏幕上沿（沿垂直于杆轴、朝屏幕上方的方向做渐变：上沿暖白、中段渐隐、下沿淡暗），不随杆旋转；最后用 `destination-out` 把与母球重叠的一小段杆头裁掉，杆头只在碰到白球处被裁开。贴图本身不带光照修饰。碰球瞬间（stroke→rolling）在母球表面沿 aim 的触点上闪一个极小的亮点：半径 `radius × 0.3`、透明度 0.6、历时 (130ms)，不做大爆光。
 
 pull 阶段在母球外圈绘制力度弧：半径 `radius + 7`、线宽 (3px)，弧长为 `charge × 2π`（自 12 点起顺时针），颜色随 charge 从薄荷经琥珀插值到炭红；底轨为半透明暖白整圆。拉杆时辅助线长度同步跟随实际 charge。
 
