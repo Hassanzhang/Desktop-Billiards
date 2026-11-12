@@ -15,7 +15,7 @@ const element = id => {
 const inputs = [];
 const events = {};
 let nextFrame;
-let table = { phase: 'ready', pulling: false, charge: 0, seconds: 0, pocketed: 0, ghost: null, guide: [], aim: [1, 0], stroke_origin: [0, 0], stroke_progress: 0, cue_follow: 0, xs: [100, 500], ys: [100, 350], sunk: [false, false] };
+let table = { phase: 'ready', charge: 0, seconds: 0, pocketed: 0, ghost: null, guide: [], aim: [1, 0], stroke_origin: [0, 0], stroke_progress: 0, cue_follow: 0, xs: [100, 500], ys: [100, 350], sunk: [false, false] };
 const context = vm.createContext({
   document: { getElementById: element },
   Image: class { set src(_) { queueMicrotask(() => this.onload()); } },

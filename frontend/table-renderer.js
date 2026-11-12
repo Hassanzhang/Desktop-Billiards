@@ -123,12 +123,12 @@ export function createRenderer(canvas, initial, images, background, frameAsset) 
     ctx.drawImage(layer, 0, 0, width, height);
   }
   function drawCue(table) {
-    if ((!['ready', 'stroke'].includes(table.phase) && !table.cue_follow) || table.sunk[0]) return;
+    if ((!['ready', 'pull', 'stroke'].includes(table.phase) && !table.cue_follow) || table.sunk[0]) return;
     const white = { x: table.xs[0], y: table.ys[0] };
     let gap = 10 + table.charge * initial.max_pull;
     if (table.phase === 'stroke') gap *= 1 - table.stroke_progress ** 1.6;
     if (table.cue_follow > 0) gap = -12 * (1 - table.cue_follow);
-    const origin = table.phase === 'ready' ? [white.x, white.y] : table.stroke_origin;
+    const origin = table.phase === 'ready' || table.phase === 'pull' ? [white.x, white.y] : table.stroke_origin;
     const tip = -radius - gap;
     const length = Math.min(400, initial.height * .48);
     ctx.save(); ctx.translate(...origin); ctx.rotate(Math.atan2(table.aim[1], table.aim[0]));

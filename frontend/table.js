@@ -37,7 +37,7 @@ canvas.addEventListener('pointercancel', cancel);
 window.addEventListener('blur', cancel);
 window.addEventListener('keydown', event => {
   if (event.key === 'Escape') { invoke('quit'); return; }
-  if (event.key === ' ' && lastTable?.pulling) { event.preventDefault(); cancel(); return; }
+  if (event.key === ' ' && lastTable?.phase === 'pull') { event.preventDefault(); cancel(); return; }
   if (event.target.matches('input, button')) return;
   if (['ArrowLeft', 'ArrowRight'].includes(event.key)) {
     event.preventDefault(); pointer.turn += (event.key === 'ArrowLeft' ? -1 : 1) * (event.shiftKey ? .00044 : .0026);
@@ -54,23 +54,23 @@ $('shoot').onclick = () => { pointer.shot = selectedPower; canvas.focus(); };
 
 function updateControls(table) {
   const active = ['ready', 'stroke'].includes(table.phase);
-  const charge = table.pulling || table.phase === 'stroke' ? table.charge : selectedPower;
+  const charge = table.phase === 'pull' || table.phase === 'stroke' ? table.charge : selectedPower;
   $('power').value = Math.round(charge * 100);
   $('power-value').value = `${Math.round(charge * 100)}%`;
-  $('power').disabled = table.phase !== 'ready' || table.pulling;
-  $('shoot').disabled = table.phase !== 'ready' || table.pulling;
-  $('shot-controls').classList.toggle('pulling', table.pulling);
+  $('power').disabled = table.phase !== 'ready';
+  $('shoot').disabled = table.phase !== 'ready';
+  $('shot-controls').classList.toggle('pulling', table.phase === 'pull');
   const score = `${table.pocketed} / ${initial.items.length} 入袋 · ${String(Math.floor(table.seconds / 60)).padStart(2, '0')}:${String(table.seconds % 60).padStart(2, '0')}`;
   if (score !== lastScore) { lastScore = score; $('table-score').textContent = score; }
   const hint = table.phase === 'finished' ? '清台完成 · 在控制面板重新开始'
     : table.phase === 'ball_in_hand' ? '白球入袋 · 点击台面空处摆球'
     : table.phase === 'return_white' ? '白球入袋 · 正在复位'
-    : table.pulling ? '方向已锁定 · 向后拉杆 · 松手击球 · 右键 / 空格取消'
+    : table.phase === 'pull' ? '方向已锁定 · 向后拉杆 · 松手击球 · 右键 / 空格取消'
     : !active ? '图标滚动中…'
     : '移动瞄准 · 按住向后拉杆 · 松手击球 · ← → / 滚轮微调';
   if (hint !== lastHint) { lastHint = hint; $('table-hint').textContent = hint; }
   let hover = -1;
-  if (!table.pulling && table.phase === 'ready') {
+  if (table.phase === 'ready') {
     for (let i = 1; i < table.xs.length; i++) {
       if (!table.sunk[i] && Math.hypot(pointer.x - table.xs[i], pointer.y - table.ys[i]) < initial.radius) {
         hover = i; break;

@@ -31,6 +31,7 @@ impl Ball {
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
     Ready,
+    Pull,
     Stroke,
     Rolling,
     ReturnWhite,
@@ -46,7 +47,6 @@ pub struct Guide {
 #[derive(Serialize)]
 pub struct Snapshot {
     pub phase: Phase,
-    pub pulling: bool,
     pub charge: f32,
     pub stroke_progress: f32,
     pub cue_follow: f32,
@@ -68,7 +68,6 @@ pub struct Table {
     pub cushions: Vec<[[f64; 2]; 4]>,
     pub rail_depth: f64,
     pub max_pull: f64,
-    pub pulling: bool,
     pub stroke_progress: f64,
     pub cue_follow: f64,
     pub stroke_origin: [f64; 2],
@@ -137,7 +136,6 @@ impl Table {
             cushions,
             rail_depth,
             max_pull: (h * 0.24).clamp(80., 180.),
-            pulling: false,
             stroke_progress: 0.,
             cue_follow: 0.,
             stroke_origin: [0., 0.],
@@ -163,7 +161,6 @@ impl Table {
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
             phase: self.phase,
-            pulling: self.pulling,
             charge: self.charge as f32,
             stroke_progress: self.stroke_progress as f32,
             cue_follow: self.cue_follow as f32,
@@ -182,7 +179,7 @@ impl Table {
         self.height() * 4.5 * power.clamp(0., 1.)
     }
     pub fn aim_at(&mut self, x: f64, y: f64) {
-        if self.phase != Phase::Ready || self.pulling {
+        if self.phase != Phase::Ready {
             return;
         }
         let dx = x - self.balls[0].x;
@@ -193,7 +190,7 @@ impl Table {
         }
     }
     pub fn begin_pull(&mut self, x: f64, y: f64) {
-        if self.phase != Phase::Ready || self.pulling {
+        if self.phase != Phase::Ready {
             return;
         }
         let [l, t, r, b] = self.bounds;
@@ -201,31 +198,35 @@ impl Table {
             return;
         }
         self.pull_origin = Some([x, y]);
-        self.pulling = true;
+        self.phase = Phase::Pull;
         self.charge = 0.;
     }
     pub fn pull_to(&mut self, x: f64, y: f64) {
-        if let Some(origin) = self.pull_origin {
+        if let (Phase::Pull, Some(origin)) = (self.phase, self.pull_origin) {
             self.charge = (((origin[0] - x) * self.aim[0] + (origin[1] - y) * self.aim[1])
                 / self.max_pull)
                 .clamp(0., 1.);
         }
     }
     pub fn cancel_pull(&mut self) {
-        self.pulling = false;
         self.pull_origin = None;
-        if self.phase == Phase::Ready {
+        if self.phase == Phase::Pull {
+            self.phase = Phase::Ready;
             self.charge = 0.;
         }
     }
     pub fn release_pull(&mut self) -> bool {
+        if self.phase != Phase::Pull {
+            self.cancel_pull();
+            return false;
+        }
         let power = self.charge;
-        let pulling = self.pulling;
-        self.cancel_pull();
-        pulling && self.shoot(power)
+        self.phase = Phase::Ready;
+        self.pull_origin = None;
+        self.shoot(power)
     }
     pub fn turn(&mut self, radians: f64) {
-        if self.phase != Phase::Ready || self.pulling {
+        if self.phase != Phase::Ready {
             return;
         }
         let angle = self.aim[1].atan2(self.aim[0]) + radians;
@@ -237,7 +238,6 @@ impl Table {
         }
         self.power = self.speed(power);
         self.charge = power.clamp(0., 1.);
-        self.pulling = false;
         self.pull_origin = None;
         self.stroke_origin = [self.balls[0].x, self.balls[0].y];
         self.cue_follow = 0.;
@@ -296,7 +296,7 @@ impl Table {
                 }
                 return;
             }
-            Phase::Ready | Phase::BallInHand => return,
+            Phase::Ready | Phase::Pull | Phase::BallInHand => return,
             Phase::Stroke => {
                 self.wait += dt;
                 self.stroke_progress = (self.wait / STROKE_SECONDS).min(1.);
@@ -492,13 +492,17 @@ impl Table {
     pub fn update_guide(&mut self) {
         self.guide.clear();
         self.ghost = None;
-        if self.phase != Phase::Ready {
+        if !matches!(self.phase, Phase::Ready | Phase::Pull) {
             return;
         }
         let white = &self.balls[0];
         let start = [white.x, white.y];
         let radius = white.radius;
-        let speed = self.speed(if self.pulling { self.charge } else { 0.55 });
+        let speed = self.speed(if self.phase == Phase::Pull {
+            self.charge
+        } else {
+            0.55
+        });
         let (end, v, hit, rail) = self.guide_leg(
             start,
             [self.aim[0] * speed, self.aim[1] * speed],
@@ -658,12 +662,33 @@ fn collide(a: &mut Ball, b: &mut Ball) {
 mod tests {
     use super::*;
     #[test]
+    fn pull_is_a_phase() {
+        let mut t = Table::new(1600., 1000., 2);
+        let (x, y) = (t.balls[0].x + 150., t.balls[0].y);
+        t.aim_at(x, y);
+        t.begin_pull(x, y);
+        assert_eq!(t.phase, Phase::Pull);
+        assert!(!t.shoot(0.5), "Side-panel shots must not fire mid-pull");
+        t.turn(0.01);
+        assert_eq!(t.aim, [1., 0.], "Aim must stay locked while pulling");
+        assert!(!t.place_white(400., 400.), "Placement never fires mid-pull");
+        t.cancel_pull();
+        assert_eq!(t.phase, Phase::Ready);
+        assert_eq!(t.charge, 0.);
+        t.begin_pull(x, y);
+        t.pull_to(x - t.max_pull * 0.5, y);
+        assert!((t.charge - 0.5).abs() < 1e-9);
+        assert!(t.release_pull());
+        assert_eq!(t.phase, Phase::Stroke);
+    }
+    #[test]
     fn pull_locks_aim_and_uses_distance_instead_of_hold_time() {
         let mut t = Table::new(1600., 1000., 2);
         assert!(t.balls.iter().all(|b| b.radius == t.balls[0].radius));
         let (x, y) = (t.balls[0].x + 150., t.balls[0].y);
         t.aim_at(x, y);
         t.begin_pull(x, y);
+        assert_eq!(t.phase, Phase::Pull);
         t.pull_to(x - t.max_pull * 0.07, y + 200.);
         t.aim_at(x + 100., y + 500.);
         for _ in 0..100 {

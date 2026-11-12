@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const error = message => { $('error').textContent = String(message); $('error').hidden = false; };
 let busy = false;
 let guide = true;
-const hints = { ready: '瞄准 · 向后拉杆 · 松手击球', stroke: '击球', rolling: '图标滚动中', return_white: '白球入袋 · 正在摆回', ball_in_hand: '白球入袋 · 点击台面空处摆球', finished: '清台 · 本局完成' };
+const hints = { ready: '瞄准 · 向后拉杆 · 松手击球', pull: '拉杆中 · 松手击球 · 右键 / 空格取消', stroke: '击球', rolling: '图标滚动中', return_white: '白球入袋 · 正在摆回', ball_in_hand: '白球入袋 · 点击台面空处摆球', finished: '清台 · 本局完成' };
 async function start() {
   if (busy) return;
   busy = true;

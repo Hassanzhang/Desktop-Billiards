@@ -142,7 +142,7 @@ components:
 
 ### Table / Cue
 
-ready 时移动瞄准；按住锁定方向并向后拉杆，松手进入 stroke。球杆长度为 `min(400, initial.height × 0.48)`；后拉距离为 `10 + charge × max_pull`，最大后拉来自 `clamp(80, 台面高度 × 0.24, 180)`。stroke 阶段球杆间距按 `1 - stroke_progress^1.6` 收敛，前送总时长 (0.12s)，末端才使母球运动。进入 rolling 后保留 (70ms) 收势：`cue_follow` 从 1 衰减到 0，杆头间距为 `-12 × (1 - cue_follow)`。stroke 与收势均锚定击球时的 `stroke_origin`，避免球杆跟随移动母球；ready 阶段锚定当前母球。球杆在 ready / stroke 或 cue_follow 有效且母球未入袋时绘制。按下拉杆保持已有 aim，保留此前方向键或滚轮微调结果。
+ready 时移动瞄准；按住锁定方向并向后拉杆（`pull` 阶段），松手进入 stroke。球杆长度为 `min(400, initial.height × 0.48)`；后拉距离为 `10 + charge × max_pull`，最大后拉来自 `clamp(80, 台面高度 × 0.24, 180)`。stroke 阶段球杆间距按 `1 - stroke_progress^1.6` 收敛，前送总时长 (0.12s)，末端才使母球运动。进入 rolling 后保留 (70ms) 收势：`cue_follow` 从 1 衰减到 0，杆头间距为 `-12 × (1 - cue_follow)`。stroke 与收势均锚定击球时的 `stroke_origin`，避免球杆跟随移动母球；ready 与 pull 阶段锚定当前母球。球杆在 ready / pull / stroke 或 cue_follow 有效且母球未入袋时绘制。按下拉杆保持已有 aim，保留此前方向键或滚轮微调结果。
 
 方向键与滚轮微调，Enter 使用侧栏所选力度；右键、拉杆中空格、失焦或 pointercancel 取消蓄力。Esc 退出。滚动中、白球复位、手中球和完成阶段使用对应状态文案；手中球点击空处摆球。这里记录真实状态机，不为装饰补充新转场或声音。
 

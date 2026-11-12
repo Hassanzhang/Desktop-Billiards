@@ -236,7 +236,7 @@ fn frame(
             game.table.release_pull();
         }
         if let Some(power) = pointer.shot {
-            if !game.table.pulling {
+            if game.table.phase == Phase::Ready {
                 game.table.shoot(power);
             }
         }
