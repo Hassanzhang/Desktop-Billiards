@@ -112,11 +112,13 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
         g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(index), x, y + .5);
       }
     }
-    // Phenolic look: the matcap is multiplied in for shading and the fresnel
-    // edge, then a fixed top-left specular sits on top. Every ball shares the
-    // same light direction; nothing here rotates with rolling.
+    // Phenolic look: the matcap rides in `overlay`, whose neutral gray keeps
+    // midtones untouched while its bright zone lifts and dark edge shades —
+    // a plain multiply would drag every base color toward gray. A fixed
+    // top-left specular sits on top. Every ball shares the same light
+    // direction; nothing here rotates with rolling.
     const mat = radius * 2 * 512 / 504;
-    g.globalCompositeOperation = 'multiply';
+    g.globalCompositeOperation = 'overlay';
     g.drawImage(matcapAsset, x - mat / 2, y - mat / 2, mat, mat);
     g.globalCompositeOperation = 'source-over';
     const spec = g.createRadialGradient(x - radius * .34, y - radius * .38, 0, x - radius * .34, y - radius * .38, radius * .5);
