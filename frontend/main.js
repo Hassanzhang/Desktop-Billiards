@@ -44,8 +44,7 @@ async function refresh() {
       $('time').textContent = `${String(Math.floor(state.seconds / 60)).padStart(2, '0')}:${String(state.seconds % 60).padStart(2, '0')}`;
       $('count').textContent = `${state.pocketed}/${state.total}`;
       $('remaining').textContent = state.total - state.pocketed;
-      $('mode').textContent = '桌面模式 · Esc / Ctrl+Alt+X 退出';
-    } else if (!busy) { $('hint').textContent = '鼠标瞄准 · 向后拉杆 · 松手击球'; $('mode').textContent = 'Esc / Ctrl+Alt+X 退出'; }
+    } else if (!busy) { $('hint').textContent = '鼠标瞄准 · 向后拉杆 · 松手击球'; }
   } catch (e) { error(e); }
   setTimeout(refresh, 150);
 }

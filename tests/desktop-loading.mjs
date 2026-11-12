@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const elements = new Map();
 const element = id => {
-  assert.notEqual(id, 'demo', 'The removed demo control must not be accessed');
+  assert.ok(!['demo', 'mode'].includes(id), 'Removed demo/footer controls must not be accessed');
   if (!elements.has(id)) elements.set(id, { setAttribute() {} });
   return elements.get(id);
 };
