@@ -182,23 +182,23 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     const angle = Math.atan2(table.aim[1], table.aim[0]);
     return { white: { x: table.xs[0], y: table.ys[0] }, origin, angle, tipX: -radius - gap };
   };
-  // A faint blurred streak on the cloth, offset screen-down; drawn beneath
-  // the balls so they occlude it like real felt shading.
-  function drawContactShadow(table) {
-    if (!cueVisible(table)) return;
-    const { origin, angle, tipX } = cueGeom(table);
-    const length = cueLength();
-    const pad = length * cueAsset.naturalHeight / cueAsset.naturalWidth;
+  // A faint contact shadow on the cloth, offset screen-down; drawn beneath
+  // the balls so they occlude it like real felt shading. Built from the cue
+  // layer's own pixels, so it follows the cue shape instead of a rectangle.
+  function drawContactShadow() {
+    if (!cueLayer) return;
     ctx.save();
-    ctx.filter = 'blur(3px)';
-    ctx.translate(origin[0], origin[1] + 2.5);
-    ctx.rotate(angle);
-    ctx.fillStyle = '#00000022';
-    ctx.fillRect(tipX - length, -pad / 2, length, pad);
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 2.5;
+    ctx.drawImage(cueLayer, 0, 0, width, height);
     ctx.restore();
   }
-  function drawCueLayer(table, scale) {
-    if (!cueVisible(table)) return;
+  // Renders the rotated cue texture plus its screen-space light into a
+  // private layer; the tip is mirrored so the texture's left-hand cue head
+  // points at the white ball.
+  function updateCueLayer(table, scale) {
+    if (!cueVisible(table)) { cueLayer = null; return; }
     if (!cueLayer) {
       cueLayer = document.createElement('canvas');
       cueLayer.width = canvas.width; cueLayer.height = canvas.height;
@@ -212,8 +212,11 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     cueCtx.save();
     cueCtx.translate(...origin);
     cueCtx.rotate(angle);
-    // Texture tip points at the ball; the shaft keeps its own baked detail.
-    cueCtx.drawImage(cueAsset, tipX - length, -pad / 2, length, pad);
+    // Mirror along the shaft: the texture's left-hand cue head must land on
+    // the ball side, the butt end trailing behind.
+    cueCtx.translate(tipX, 0);
+    cueCtx.scale(-1, 1);
+    cueCtx.drawImage(cueAsset, 0, -pad / 2, length, pad);
     cueCtx.restore();
     // Screen-space cylinder light: the pole of light stays on the upper edge
     // no matter how the cue rotates, so it never sticks to the texture.
@@ -255,7 +258,6 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     cueCtx.globalCompositeOperation = 'destination-out';
     cueCtx.beginPath(); cueCtx.arc(white.x, white.y, radius, 0, TAU); cueCtx.fill();
     cueCtx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(cueLayer, 0, 0, width, height);
   }
   // A tiny bright dot where the tip meets the white at the instant of contact.
   function drawFlashes(now) {
@@ -379,9 +381,10 @@ export function createRenderer(canvas, initial, images, background, frameAsset, 
     }
     // Balls first, cue above them: the tip is clipped only where it overlaps
     // the white, so contact reads as the tip pressing into the ball edge.
-    drawContactShadow(table);
+    updateCueLayer(table, scale);
+    drawContactShadow();
     drawBalls(table, scale);
-    drawCueLayer(table, scale);
+    if (cueLayer) ctx.drawImage(cueLayer, 0, 0, width, height);
     drawChargeArc(table);
     drawSinkEffects(now);
     drawFlashes(now);

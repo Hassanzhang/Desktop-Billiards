@@ -133,3 +133,8 @@
 - 发球：`pick_seven` 泛化为 `pick_icons(items, ICONS_PER_GAME=14)`，`open_game`/`restart` 同步，不足 14 个提示拒绝。Rack=15（14+黑 8），白球共 16 球。
 - `npm test`（10 项 Rust + 3 项 Node）、`npm run check`、`cargo fmt --check`、`node --check` 通过。
 - 未覆盖：matcap 光向观感、阴影柔和度、球面压缩强度、双黑 8 修复的实机确认均待原生验收；模拟桩不渲染贴图。
+
+## 球杆方向与接触影修正 · 2026-11-12 · 未发布
+
+- 用户实机反馈：杆贴图贴反（击球端显示成杆尾），且杆外围有一圈阴影状长方形。根因：(1) 绘制把贴图左缘（杆头）放到了远离母球的一端，改为 `translate(tipX) + scale(-1,1)` 镜像，旋转保留；(2) 接触影原先对贴图外接矩形整块填半透明色，贴图四周透明区被染色成矩形暗带——改为 `updateCueLayer` 先把贴图＋光照＋裁切烘焙进杆图层，接触影由图层像素经 `shadowBlur(4)/alpha 0.18/下偏 2.5px` 生成，只沿杆形。
+- `node --check`、三项 Node 回归通过；Rust 无改动。杆头方向、阴影形状待原生复验。
